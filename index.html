@@ -144,11 +144,11 @@
             const chart = echarts.init(document.getElementById('map'));
             const loading = document.getElementById('loading');
             
-            // 尝试多个地图数据源
+            // 尝试多个地图数据源（按可靠性排序）
             const mapUrls = [
-                'https://geo.datav.aliyun.com/areas_v3/bound/world.json',
                 'https://unpkg.com/echarts@4.9.0/map/json/world.json',
-                'https://cdn.bootcdn.net/ajax/libs/echarts/4.9.0/map/json/world.json'
+                'https://cdn.bootcdn.net/ajax/libs/echarts/4.9.0/map/json/world.json',
+                'https://cdn.jsdelivr.net/npm/echarts@4.9.0/map/json/world.json'
             ];
             
             let worldJson = null;
