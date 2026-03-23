@@ -120,6 +120,9 @@
             transform: translateY(-2px);
             box-shadow: 0 5px 20px rgba(0,0,0,0.3);
         }
+        .index-card.closed {
+            opacity: 0.7;
+        }
         .index-header {
             display: flex;
             justify-content: space-between;
@@ -128,6 +131,40 @@
         }
         .index-name { font-size: 18px; font-weight: bold; }
         .index-region { font-size: 12px; color: #888; margin-top: 3px; }
+        .index-status {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            width: fit-content;
+        }
+        .index-status.open {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+        }
+        .index-status.closed {
+            background: rgba(107, 114, 128, 0.2);
+            color: #9ca3af;
+        }
+        .index-status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+        .index-status.open .index-status-dot {
+            background: #22c55e;
+            animation: pulse 2s infinite;
+        }
+        .index-status.closed .index-status-dot {
+            background: #6b7280;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
         .index-change {
             padding: 6px 12px;
             border-radius: 6px;
@@ -210,7 +247,7 @@
     </div>
 
     <div class="footer">
-        数据来源: Stooq | 每小时自动更新 | <a href="https://github.com/glenman/global-stock-map" target="_blank">GitHub</a>
+        数据来源: Yahoo Finance | 每小时自动更新 | <a href="https://github.com/glenman/global-stock-map" target="_blank">GitHub</a>
     </div>
 
     <script>
@@ -224,11 +261,180 @@
             "非洲": "🌍"
         };
 
+        // 交易所交易时间（北京时间，24小时制）
+        // 格式: [开盘时间, 收盘时间] (多个时段用数组)
+        const marketHours = {
+            // 美国 (EST/EDT -> 北京时间 +12/+13)
+            "美国": { 
+                summer: [[21, 30], [4, 0]],   // 夏令时: 21:30-04:00
+                winter: [[22, 30], [5, 0]],   // 冬令时: 22:30-05:00
+                summerStart: [3, 2],  // 3月第二个周日
+                winterStart: [11, 1]  // 11月第一个周日
+            },
+            // 中国
+            "中国": { sessions: [[[9, 30], [11, 30]], [[13, 0], [15, 0]]] },
+            // 香港
+            "香港": { sessions: [[[10, 0], [12, 30]], [[14, 30], [16, 0]]] },
+            // 台湾
+            "台湾": { sessions: [[[9, 0], [13, 30]]] },
+            // 日本
+            "日本": { sessions: [[[8, 0], [10, 30]], [[11, 30], [14, 0]]] },
+            // 韩国
+            "韩国": { sessions: [[[8, 0], [14, 30]]] },
+            // 印度
+            "印度": { sessions: [[[11, 45], [18, 45]]] },
+            // 新加坡
+            "新加坡": { sessions: [[[9, 0], [17, 0]]] },
+            // 马来西亚
+            "马来西亚": { sessions: [[[9, 0], [17, 0]]] },
+            // 泰国
+            "泰国": { sessions: [[[10, 0], [12, 30]], [[14, 30], [16, 30]]] },
+            // 印尼
+            "印尼": { sessions: [[[10, 0], [17, 0]]] },
+            // 菲律宾
+            "菲律宾": { sessions: [[[9, 30], [15, 30]]] },
+            // 英国 (GMT/BST -> 北京时间 +8/+9)
+            "英国": { 
+                summer: [[15, 0], [23, 30]],
+                winter: [[16, 0], [0, 30]],
+                summerStart: [3, -1],  // 3月最后一个周日
+                winterStart: [10, -1]  // 10月最后一个周日
+            },
+            // 德国/法国/意大利/西班牙/荷兰/瑞士 (CET/CEST)
+            "德国": { 
+                summer: [[15, 0], [23, 30]],
+                winter: [[16, 0], [0, 30]],
+                summerStart: [3, -1],
+                winterStart: [10, -1]
+            },
+            "法国": { 
+                summer: [[15, 0], [23, 30]],
+                winter: [[16, 0], [0, 30]],
+                summerStart: [3, -1],
+                winterStart: [10, -1]
+            },
+            "意大利": { 
+                summer: [[15, 0], [23, 30]],
+                winter: [[16, 0], [0, 30]],
+                summerStart: [3, -1],
+                winterStart: [10, -1]
+            },
+            "西班牙": { 
+                summer: [[15, 0], [23, 30]],
+                winter: [[16, 0], [0, 30]],
+                summerStart: [3, -1],
+                winterStart: [10, -1]
+            },
+            "荷兰": { 
+                summer: [[15, 0], [23, 30]],
+                winter: [[16, 0], [0, 30]],
+                summerStart: [3, -1],
+                winterStart: [10, -1]
+            },
+            "瑞士": { 
+                summer: [[15, 0], [23, 30]],
+                winter: [[16, 0], [0, 30]],
+                summerStart: [3, -1],
+                winterStart: [10, -1]
+            },
+            // 加拿大
+            "加拿大": { 
+                summer: [[21, 30], [4, 0]],
+                winter: [[22, 30], [5, 0]],
+                summerStart: [3, 2],
+                winterStart: [11, 1]
+            },
+            // 墨西哥
+            "墨西哥": { 
+                summer: [[21, 30], [4, 0]],
+                winter: [[22, 30], [5, 0]],
+                summerStart: [3, 2],
+                winterStart: [11, 1]
+            },
+            // 巴西
+            "巴西": { sessions: [[[21, 0], [4, 0]]] },
+            // 阿根廷
+            "阿根廷": { sessions: [[[22, 0], [5, 0]]] },
+            // 澳大利亚
+            "澳大利亚": { sessions: [[[7, 0], [13, 0]]] },
+            // 新西兰
+            "新西兰": { sessions: [[[5, 0], [11, 0]]] },
+            // 沙特
+            "沙特": { sessions: [[[13, 0], [21, 0]]] },
+            // 以色列
+            "以色列": { sessions: [[[14, 0], [22, 30]]] },
+            // 南非
+            "南非": { sessions: [[[15, 0], [23, 0]]] },
+            // 埃及
+            "埃及": { sessions: [[[15, 0], [23, 0]]] }
+        };
+
+        // 判断是否夏令时
+        function isSummerTime(region, now) {
+            const config = marketHours[region];
+            if (!config || !config.summerStart) return false;
+            
+            const year = now.getFullYear();
+            const [month, week] = config.summerStart;
+            
+            // 简化判断：5-10月为夏令时（北半球），其他为冬令时
+            const currentMonth = now.getMonth() + 1;
+            return currentMonth >= 4 && currentMonth <= 10;
+        }
+
+        // 判断市场是否开盘
+        function isMarketOpen(region) {
+            const now = new Date();
+            const currentHour = now.getHours();
+            const currentMinute = now.getMinutes();
+            const currentTime = currentHour * 60 + currentMinute;
+            
+            const config = marketHours[region];
+            if (!config) return false;
+            
+            // 有多个交易时段
+            if (config.sessions) {
+                for (const session of config.sessions) {
+                    const [[startH, startM], [endH, endM]] = session;
+                    const startTime = startH * 60 + startM;
+                    const endTime = endH * 60 + endM;
+                    
+                    // 处理跨天情况
+                    if (endTime < startTime) {
+                        if (currentTime >= startTime || currentTime < endTime) {
+                            return true;
+                        }
+                    } else {
+                        if (currentTime >= startTime && currentTime < endTime) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+            
+            // 有夏令时/冬令时区分
+            if (config.summer && config.winter) {
+                const isSummer = isSummerTime(region, now);
+                const hours = isSummer ? config.summer : config.winter;
+                const [[startH, startM], [endH, endM]] = hours;
+                const startTime = startH * 60 + startM;
+                const endTime = endH * 60 + endM;
+                
+                if (endTime < startTime) {
+                    return currentTime >= startTime || currentTime < endTime;
+                } else {
+                    return currentTime >= startTime && currentTime < endTime;
+                }
+            }
+            
+            return false;
+        }
+
         let indexData = [];
         let currentFilter = 'all';
         let searchTerm = '';
 
-        // 加载静态JSON数据
         async function loadData() {
             try {
                 const response = await fetch('data/indices.json');
@@ -276,14 +482,12 @@
                 return;
             }
 
-            // 按地区分组
             const groups = {};
             indices.forEach(i => {
                 if (!groups[i.area]) groups[i.area] = [];
                 groups[i.area].push(i);
             });
 
-            // 排序
             Object.keys(groups).forEach(area => {
                 groups[area].sort((a, b) => b.change - a.change);
             });
@@ -303,7 +507,16 @@
                     const changeStr = i.change > 0 ? `+${i.change.toFixed(2)}%` : 
                                       (i.change < 0 ? `${i.change.toFixed(2)}%` : '0.00%');
                     
-                    html += `<div class="index-card">
+                    const isOpen = isMarketOpen(i.region);
+                    const statusClass = isOpen ? 'open' : 'closed';
+                    const statusText = isOpen ? '🟢 交易中' : '⚫ 已收盘';
+                    const cardClass = isOpen ? '' : 'closed';
+                    
+                    html += `<div class="index-card ${cardClass}">
+                        <div class="index-status ${statusClass}">
+                            <span class="index-status-dot"></span>
+                            ${statusText}
+                        </div>
                         <div class="index-header">
                             <div>
                                 <div class="index-name">${i.name}</div>
