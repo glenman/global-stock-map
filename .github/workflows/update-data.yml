@@ -16,113 +16,102 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Fetch Stock Data
-        env:
-          YAHOO_INDICES: |
-            ^GSPC|标普500|美国|北美洲|USD
-            ^DJI|道琼斯|美国|北美洲|USD
-            ^IXIC|纳斯达克|美国|北美洲|USD
-            000001.SS|上证指数|中国|亚洲|CNY
-            399001.SZ|深证成指|中国|亚洲|CNY
-            ^N225|日经225|日本|亚洲|JPY
-            ^HSI|恒生指数|香港|亚洲|HKD
-            ^FTSE|富时100|英国|欧洲|GBP
-            ^GDAXI|德国DAX|德国|欧洲|EUR
-            ^FCHI|法国CAC40|法国|欧洲|EUR
         run: |
           mkdir -p data
           UPDATE_TIME=$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')
           
-          # 初始化JSON
-          echo '{' > data/indices.json
-          echo '  "update_time": "'"$UPDATE_TIME"'",' >> data/indices.json
-          echo '  "indices": [' >> data/indices.json
+          # 创建 Python 脚本
+          cat > /tmp/fetch_indices.py << 'PYEOF'
+          import urllib.request
+          import json
+          import ssl
+          import time
           
-          FIRST=true
-          SUCCESS_COUNT=0
-          FAIL_COUNT=0
+          # 忽略 SSL 证书
+          ctx = ssl.create_default_context()
+          ctx.check_hostname = False
+          ctx.verify_mode = ssl.CERT_NONE
           
-          while IFS='|' read -r SYMBOL NAME REGION AREA CURRENCY; do
-            [ -z "$SYMBOL" ] && continue
-            
-            # 尝试3次
-            for RETRY in 1 2 3; do
-              URL="https://query1.finance.yahoo.com/v8/finance/chart/${SYMBOL}?interval=1d&range=2d"
-              RESPONSE=$(curl -s --max-time 20 "$URL" 2>&1)
+          # 代理列表
+          PROXIES = [
+              lambda url: f"https://api.allorigins.win/raw?url={urllib.parse.quote(url, safe='')}",
+              lambda url: f"https://corsproxy.io/?{urllib.parse.quote(url, safe='')}",
+              lambda url: url,  # 直连
+          ]
+          
+          INDICES = [
+              ("^GSPC", "标普500", "美国", "北美洲", "USD"),
+              ("^DJI", "道琼斯", "美国", "北美洲", "USD"),
+              ("^IXIC", "纳斯达克", "美国", "北美洲", "USD"),
+              ("000001.SS", "上证指数", "中国", "亚洲", "CNY"),
+              ("399001.SZ", "深证成指", "中国", "亚洲", "CNY"),
+              ("^N225", "日经225", "日本", "亚洲", "JPY"),
+              ("^HSI", "恒生指数", "香港", "亚洲", "HKD"),
+              ("^FTSE", "富时100", "英国", "欧洲", "GBP"),
+              ("^GDAXI", "德国DAX", "德国", "欧洲", "EUR"),
+              ("^FCHI", "法国CAC40", "法国", "欧洲", "EUR"),
+          ]
+          
+          results = []
+          
+          for symbol, name, region, area, currency in INDICES:
+              yahoo_url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=2d"
               
-              if [ -n "$RESPONSE" ] && ! echo "$RESPONSE" | grep -q "error"; then
-                break
-              fi
+              data = None
+              for proxy_func in PROXIES:
+                  try:
+                      url = proxy_func(yahoo_url)
+                      req = urllib.request.Request(url, headers={
+                          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                      })
+                      with urllib.request.urlopen(req, timeout=20, context=ctx) as resp:
+                          text = resp.read().decode('utf-8')
+                          d = json.loads(text)
+                          q = d['chart']['result'][0]['indicators']['quote'][0]
+                          closes = [c for c in q['close'] if c is not None]
+                          if len(closes) >= 2:
+                              curr, prev = closes[-1], closes[-2]
+                              change = ((curr - prev) / prev) * 100
+                              data = {
+                                  "id": symbol,
+                                  "name": name,
+                                  "region": region,
+                                  "area": area,
+                                  "value": round(curr, 2),
+                                  "change": round(change, 2),
+                                  "currency": currency
+                              }
+                              print(f"✓ {name} = {curr:.2f} ({change:+.2f}%)")
+                              break
+                  except Exception as e:
+                      continue
               
-              [ $RETRY -lt 3 ] && sleep 2
-            done
-            
-            if [ -z "$RESPONSE" ] || echo "$RESPONSE" | grep -q "error"; then
-              echo "❌ $NAME: 获取失败" >&2
-              FAIL_COUNT=$((FAIL_COUNT + 1))
-              continue
-            fi
-            
-            # 提取数据
-            DATA=$(echo "$RESPONSE" | python3 -c "
-          import sys, json
-          try:
-              d = json.load(sys.stdin)
-              q = d['chart']['result'][0]['indicators']['quote'][0]
-              closes = [c for c in q['close'] if c is not None]
-              if len(closes) >= 2:
-                  curr, prev = closes[-1], closes[-2]
-                  change = ((curr - prev) / prev) * 100
-                  print(f'{curr:.2f}|{change:.2f}')
-              elif len(closes) == 1:
-                  print(f'{closes[0]:.2f}|0.00')
-          except Exception as e:
-              print(f'ERROR: {e}', file=sys.stderr)
-          " 2>&1)
-            
-            if [ -z "$DATA" ] || echo "$DATA" | grep -q "ERROR"; then
-              echo "❌ $NAME: 解析失败" >&2
-              FAIL_COUNT=$((FAIL_COUNT + 1))
-              continue
-            fi
-            
-            VALUE=$(echo "$DATA" | cut -d'|' -f1)
-            CHANGE=$(echo "$DATA" | cut -d'|' -f2)
-            
-            if [ "$FIRST" = "true" ]; then
-              FIRST=false
-            else
-              echo ',' >> data/indices.json
-            fi
-            
-            cat >> data/indices.json << ENTRY
-              {
-                "id": "${SYMBOL}",
-                "name": "${NAME}",
-                "region": "${REGION}",
-                "area": "${AREA}",
-                "value": ${VALUE},
-                "change": ${CHANGE},
-                "currency": "${CURRENCY}"
-              }
-          ENTRY
-            
-            echo "✓ $NAME = $VALUE ($CHANGE%)"
-            SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
-            
-            # 避免请求过快
-            sleep 1
-            
-          done <<< "$YAHOO_INDICES"
+              if data:
+                  results.append(data)
+              else:
+                  print(f"❌ {name}: 获取失败", flush=True)
+              
+              time.sleep(0.5)
           
-          echo '' >> data/indices.json
-          echo '  ]' >> data/indices.json
-          echo '}' >> data/indices.json
+          # 输出 JSON
+          output = {
+              "update_time": UPDATE_TIME,
+              "indices": results
+          }
+          
+          with open('data/indices.json', 'w', encoding='utf-8') as f:
+              json.dump(output, f, ensure_ascii=False, indent=2)
+          
+          print(f"\n=== 数据更新完成 ===")
+          print(f"成功: {len(results)} 个指数")
+          print(f"失败: {len(INDICES) - len(results)} 个指数")
+          PYEOF
+          
+          export UPDATE_TIME="$UPDATE_TIME"
+          python3 /tmp/fetch_indices.py
           
           echo ""
-          echo "=== 数据更新完成 ==="
-          echo "更新时间: $UPDATE_TIME"
-          echo "成功: $SUCCESS_COUNT 个指数"
-          echo "失败: $FAIL_COUNT 个指数"
+          cat data/indices.json | head -20
       
       - name: Commit and Push
         run: |
