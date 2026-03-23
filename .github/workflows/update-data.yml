@@ -1,0 +1,151 @@
+name: Update Stock Index Data
+
+on:
+  schedule:
+    # 每小时更新一次（整点）
+    - cron: '0 * * * *'
+  workflow_dispatch:  # 手动触发
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Fetch Stock Data
+        run: |
+          # 创建数据目录
+          mkdir -p data
+          
+          # 获取股票数据的函数
+          fetch_index() {
+            local symbol=$1
+            local url="https://stooq.com/q/l/?s=${symbol}&f=sd2t2ohlc&h&e=csv"
+            local csv=$(curl -s "$url")
+            
+            # 解析CSV（跳过标题行）
+            local data=$(echo "$csv" | tail -1)
+            
+            if [[ "$data" == *"N/D"* ]] || [[ -z "$data" ]]; then
+              echo "null"
+              return
+            fi
+            
+            # 提取数据
+            IFS=',' read -r sym date time open high low close <<< "$data"
+            
+            # 计算涨跌幅
+            if [[ -n "$open" ]] && [[ "$open" != "N/D" ]] && [[ -n "$close" ]] && [[ "$close" != "N/D" ]]; then
+              local change=$(echo "scale=2; (($close - $open) / $open) * 100" | bc 2>/dev/null || echo "0")
+              echo "{\"value\": $close, \"change\": $change}"
+            else
+              echo "null"
+            fi
+          }
+          
+          # 创建JSON数据
+          cat > data/indices.json << 'JSONSTART'
+          {
+            "update_time": "JSONTIME",
+            "indices": [
+          JSONSTART
+          
+          # 获取当前时间
+          update_time=$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')
+          sed -i "s/JSONTIME/$update_time/" data/indices.json
+          
+          # 指数列表
+          declare -A indices=(
+            # 北美洲
+            ["^SPX"]="标普500|美国|北美洲|USD"
+            ["^DJI"]="道琼斯|美国|北美洲|USD"
+            ["^NDX"]="纳斯达克100|美国|北美洲|USD"
+            ["^GSPTSE"]="多伦多综指|加拿大|北美洲|CAD"
+            
+            # 南美洲
+            ["^BVSP"]="巴西BOVESPA|巴西|南美洲|BRL"
+            ["^MERV"]="阿根廷MERVAL|阿根廷|南美洲|ARS"
+            
+            # 欧洲
+            ["^UKX"]="富时100|英国|欧洲|GBP"
+            ["^DAX"]="德国DAX|德国|欧洲|EUR"
+            ["^CAC"]="法国CAC40|法国|欧洲|EUR"
+            ["^FTMIB"]="意大利MIB|意大利|欧洲|EUR"
+            ["^IBEX"]="西班牙IBEX35|西班牙|欧洲|EUR"
+            ["^SMI"]="瑞士SMI|瑞士|欧洲|CHF"
+            ["^AEX"]="荷兰AEX|荷兰|欧洲|EUR"
+            
+            # 亚洲
+            ["^NKY"]="日经225|日本|亚洲|JPY"
+            ["^HSI"]="恒生指数|香港|亚洲|HKD"
+            ["^STI"]="新加坡海峡|新加坡|亚洲|SGD"
+            ["^KS11"]="韩国KOSPI|韩国|亚洲|KRW"
+            ["^NIFTY"]="印度NIFTY50|印度|亚洲|INR"
+            ["^BSESN"]="印度SENSEX|印度|亚洲|INR"
+            ["^JKSE"]="印尼综指|印尼|亚洲|IDR"
+            ["^SET"]="泰国SET|泰国|亚洲|THB"
+            ["^KLSE"]="马来西亚综指|马来西亚|亚洲|MYR"
+            
+            # 大洋洲
+            ["^AXJO"]="澳洲ASX200|澳大利亚|大洋洲|AUD"
+            ["^NZ50"]="新西兰NZX50|新西兰|大洋洲|NZD"
+          )
+          
+          first=true
+          for symbol in "${!indices[@]}"; do
+            IFS='|' read -r name region area currency <<< "${indices[$symbol]}"
+            
+            # 获取数据
+            csv_data=$(curl -s "https://stooq.com/q/l/?s=${symbol}&f=sd2t2ohlc&h&e=csv")
+            data_line=$(echo "$csv_data" | tail -1)
+            
+            if [[ "$data_line" == *"N/D"* ]] || [[ -z "$data_line" ]]; then
+              continue
+            fi
+            
+            IFS=',' read -r sym date time open high low close <<< "$data_line"
+            
+            if [[ -n "$close" ]] && [[ "$close" != "N/D" ]]; then
+              # 计算涨跌幅
+              if [[ -n "$open" ]] && [[ "$open" != "N/D" ]] && [[ "$open" != "0" ]]; then
+                change=$(awk "BEGIN {printf \"%.2f\", (($close - $open) / $open) * 100}")
+              else
+                change="0.00"
+              fi
+              
+              if [ "$first" = true ]; then
+                first=false
+              else
+                echo "," >> data/indices.json
+              fi
+              
+              cat >> data/indices.json << ENTRY
+              {
+                "id": "${symbol}",
+                "name": "${name}",
+                "region": "${region}",
+                "area": "${area}",
+                "value": ${close},
+                "change": ${change},
+                "currency": "${currency}"
+              }
+          ENTRY
+            fi
+          done
+          
+          echo "" >> data/indices.json
+          echo "]" >> data/indices.json
+          echo "}" >> data/indices.json
+          
+          echo "Data updated at $update_time"
+          cat data/indices.json
+      
+      - name: Commit and Push
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data/indices.json
+          git diff --quiet && git diff --staged --quiet || git commit -m "📊 更新股票指数数据 - $(date '+%Y-%m-%d %H:%M')"
+          git push

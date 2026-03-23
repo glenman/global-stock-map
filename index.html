@@ -26,30 +26,6 @@
             background-clip: text;
         }
         .update-time { color: #888; font-size: 14px; }
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(26, 26, 46, 0.95);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            flex-direction: column;
-            gap: 20px;
-        }
-        .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid #2d2d44;
-            border-top-color: #00d4ff;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .loading-text { color: #888; }
         .stats {
             display: flex;
             justify-content: center;
@@ -109,20 +85,6 @@
         }
         .search-box input:focus { border-color: #00d4ff; }
         .search-box input::placeholder { color: #666; }
-        .refresh-btn {
-            display: block;
-            margin: 0 auto 20px;
-            padding: 10px 30px;
-            background: linear-gradient(135deg, #00d4ff, #7c3aed);
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: transform 0.2s;
-        }
-        .refresh-btn:hover { transform: scale(1.05); }
-        .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .regions {
             max-width: 1400px;
             margin: 0 auto;
@@ -158,10 +120,6 @@
             transform: translateY(-2px);
             box-shadow: 0 5px 20px rgba(0,0,0,0.3);
         }
-        .index-card.error {
-            border-color: #ef4444;
-            opacity: 0.6;
-        }
         .index-header {
             display: flex;
             justify-content: space-between;
@@ -190,14 +148,21 @@
             font-size: 12px;
         }
         .footer a { color: #00d4ff; text-decoration: none; }
-        .error-msg {
+        .loading {
             text-align: center;
-            color: #ef4444;
-            padding: 20px;
-            background: rgba(239,68,68,0.1);
-            border-radius: 8px;
-            margin-bottom: 20px;
+            padding: 60px 20px;
+            color: #888;
         }
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #2d2d44;
+            border-top-color: #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
         @media (max-width: 600px) {
             .header h1 { font-size: 24px; }
             .stat-box { padding: 10px 20px; }
@@ -207,11 +172,6 @@
     </style>
 </head>
 <body>
-    <div class="loading-overlay" id="loadingOverlay">
-        <div class="loading-spinner"></div>
-        <div class="loading-text">正在获取全球股票指数数据...</div>
-    </div>
-
     <div class="header">
         <h1>🌍 全球股票指数</h1>
         <div class="update-time" id="updateTime">数据更新时间: 加载中...</div>
@@ -232,8 +192,6 @@
         </div>
     </div>
 
-    <button class="refresh-btn" id="refreshBtn" onclick="loadAllData()">🔄 刷新数据</button>
-
     <div class="filter-bar">
         <button class="filter-btn all active" onclick="filter('all')">全部</button>
         <button class="filter-btn up" onclick="filter('up')">📈 上涨</button>
@@ -244,65 +202,18 @@
         <input type="text" id="searchInput" placeholder="搜索指数名称或地区..." oninput="search()">
     </div>
 
-    <div class="regions" id="regions"></div>
+    <div class="regions" id="regions">
+        <div class="loading">
+            <div class="loading-spinner"></div>
+            <div>正在加载数据...</div>
+        </div>
+    </div>
 
     <div class="footer">
-        数据来源: Yahoo Finance | <a href="https://github.com/glenman/global-stock-map" target="_blank">GitHub</a>
+        数据来源: Stooq | 每小时自动更新 | <a href="https://github.com/glenman/global-stock-map" target="_blank">GitHub</a>
     </div>
 
     <script>
-        // 指数配置 - Yahoo Finance符号
-        const indexConfig = [
-            // 北美洲
-            { symbol: "^GSPC", name: "标普500", region: "美国", area: "北美洲", currency: "USD" },
-            { symbol: "^DJI", name: "道琼斯", region: "美国", area: "北美洲", currency: "USD" },
-            { symbol: "^IXIC", name: "纳斯达克", region: "美国", area: "北美洲", currency: "USD" },
-            { symbol: "^GSPTSE", name: "多伦多综指", region: "加拿大", area: "北美洲", currency: "CAD" },
-            { symbol: "^MXX", name: "墨西哥IPC", region: "墨西哥", area: "北美洲", currency: "MXN" },
-            
-            // 南美洲
-            { symbol: "^BVSP", name: "巴西BOVESPA", region: "巴西", area: "南美洲", currency: "BRL" },
-            { symbol: "^MERV", name: "阿根廷MERVAL", region: "阿根廷", area: "南美洲", currency: "ARS" },
-            
-            // 欧洲
-            { symbol: "^FTSE", name: "富时100", region: "英国", area: "欧洲", currency: "GBP" },
-            { symbol: "^GDAXI", name: "德国DAX", region: "德国", area: "欧洲", currency: "EUR" },
-            { symbol: "^FCHI", name: "法国CAC40", region: "法国", area: "欧洲", currency: "EUR" },
-            { symbol: "FTSEMIB.MI", name: "意大利MIB", region: "意大利", area: "欧洲", currency: "EUR" },
-            { symbol: "^IBEX", name: "西班牙IBEX35", region: "西班牙", area: "欧洲", currency: "EUR" },
-            { symbol: "^SSMI", name: "瑞士SMI", region: "瑞士", area: "欧洲", currency: "CHF" },
-            { symbol: "^AEX", name: "荷兰AEX", region: "荷兰", area: "欧洲", currency: "EUR" },
-            
-            // 亚洲
-            { symbol: "^N225", name: "日经225", region: "日本", area: "亚洲", currency: "JPY" },
-            { symbol: "^TOPIX", name: "东证TOPIX", region: "日本", area: "亚洲", currency: "JPY" },
-            { symbol: "000300.SS", name: "沪深300", region: "中国", area: "亚洲", currency: "CNY" },
-            { symbol: "000001.SS", name: "上证指数", region: "中国", area: "亚洲", currency: "CNY" },
-            { symbol: "399001.SZ", name: "深证成指", region: "中国", area: "亚洲", currency: "CNY" },
-            { symbol: "^HSI", name: "恒生指数", region: "香港", area: "亚洲", currency: "HKD" },
-            { symbol: "^TWII", name: "台湾加权", region: "台湾", area: "亚洲", currency: "TWD" },
-            { symbol: "^KS11", name: "韩国KOSPI", region: "韩国", area: "亚洲", currency: "KRW" },
-            { symbol: "^NSEI", name: "印度NIFTY50", region: "印度", area: "亚洲", currency: "INR" },
-            { symbol: "^BSESN", name: "印度SENSEX", region: "印度", area: "亚洲", currency: "INR" },
-            { symbol: "^JKSE", name: "印尼综指", region: "印尼", area: "亚洲", currency: "IDR" },
-            { symbol: "^SET.BK", name: "泰国SET", region: "泰国", area: "亚洲", currency: "THB" },
-            { symbol: "^KLSE", name: "马来西亚综指", region: "马来西亚", area: "亚洲", currency: "MYR" },
-            { symbol: "^STI", name: "新加坡海峡", region: "新加坡", area: "亚洲", currency: "SGD" },
-            { symbol: "^PSEI", name: "菲律宾综指", region: "菲律宾", area: "亚洲", currency: "PHP" },
-            
-            // 大洋洲
-            { symbol: "^AXJO", name: "澳洲ASX200", region: "澳大利亚", area: "大洋洲", currency: "AUD" },
-            { symbol: "^NZ50", name: "新西兰NZX50", region: "新西兰", area: "大洋洲", currency: "NZD" },
-            
-            // 中东
-            { symbol: "^TASI.SR", name: "沙特TASI", region: "沙特", area: "中东", currency: "SAR" },
-            { symbol: "^TA125.TA", name: "以色列TA125", region: "以色列", area: "中东", currency: "ILS" },
-            
-            // 非洲
-            { symbol: "^JN0U.JO", name: "南非JSE", region: "南非", area: "非洲", currency: "ZAR" },
-            { symbol: "^EGX30", name: "埃及EGX30", region: "埃及", area: "非洲", currency: "EGP" }
-        ];
-
         const areaIcons = {
             "北美洲": "🌎",
             "南美洲": "🌎",
@@ -316,93 +227,32 @@
         let indexData = [];
         let currentFilter = 'all';
         let searchTerm = '';
-        let isLoading = false;
 
-        // 通过CORS代理获取Yahoo Finance数据
-        async function fetchIndexData(symbol) {
-            const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=2d`;
-            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-            
+        // 加载静态JSON数据
+        async function loadData() {
             try {
-                const response = await fetch(proxyUrl);
-                if (!response.ok) throw new Error('Network error');
+                const response = await fetch('data/indices.json');
+                if (!response.ok) throw new Error('Failed to load data');
                 const data = await response.json();
-                
-                if (data.chart && data.chart.result && data.chart.result[0]) {
-                    const result = data.chart.result[0];
-                    const meta = result.meta;
-                    const quotes = result.indicators?.quote?.[0];
-                    
-                    if (quotes && quotes.close) {
-                        const closes = quotes.close.filter(c => c !== null);
-                        const currentPrice = closes[closes.length - 1];
-                        const prevPrice = closes.length > 1 ? closes[closes.length - 2] : currentPrice;
-                        const change = prevPrice > 0 ? ((currentPrice - prevPrice) / prevPrice) * 100 : 0;
-                        
-                        return {
-                            value: currentPrice,
-                            change: change,
-                            currency: meta.currency || 'USD'
-                        };
-                    }
-                }
-                return null;
+                indexData = data.indices || [];
+                document.getElementById('updateTime').textContent = `数据更新时间: ${data.update_time || '未知'}`;
+                updateStats();
+                render();
             } catch (e) {
-                console.error(`Failed to fetch ${symbol}:`, e);
-                return null;
+                console.error('Load error:', e);
+                document.getElementById('regions').innerHTML = `
+                    <div class="loading">
+                        <div style="color: #ef4444;">❌ 数据加载失败</div>
+                        <div style="margin-top: 10px; font-size: 12px;">请稍后刷新页面重试</div>
+                    </div>
+                `;
             }
-        }
-
-        // 加载所有数据
-        async function loadAllData() {
-            if (isLoading) return;
-            isLoading = true;
-            
-            const refreshBtn = document.getElementById('refreshBtn');
-            const loadingOverlay = document.getElementById('loadingOverlay');
-            refreshBtn.disabled = true;
-            refreshBtn.textContent = '⏳ 加载中...';
-            loadingOverlay.style.display = 'flex';
-            
-            indexData = [];
-            
-            // 批量获取数据，每次5个并发
-            const batchSize = 5;
-            for (let i = 0; i < indexConfig.length; i += batchSize) {
-                const batch = indexConfig.slice(i, i + batchSize);
-                const results = await Promise.all(
-                    batch.map(async (config) => {
-                        const data = await fetchIndexData(config.symbol);
-                        return {
-                            ...config,
-                            ...data,
-                            error: data === null
-                        };
-                    })
-                );
-                indexData.push(...results);
-            }
-            
-            isLoading = false;
-            refreshBtn.disabled = false;
-            refreshBtn.textContent = '🔄 刷新数据';
-            loadingOverlay.style.display = 'none';
-            
-            updateStats();
-            render();
         }
 
         function updateStats() {
-            const validData = indexData.filter(i => !i.error);
-            document.getElementById('upCount').textContent = validData.filter(i => i.change > 0.01).length;
-            document.getElementById('downCount').textContent = validData.filter(i => i.change < -0.01).length;
-            document.getElementById('flatCount').textContent = validData.filter(i => Math.abs(i.change) <= 0.01).length;
-            
-            const now = new Date();
-            document.getElementById('updateTime').textContent = `数据更新时间: ${now.toLocaleString('zh-CN', { 
-                year: 'numeric', month: '2-digit', day: '2-digit',
-                hour: '2-digit', minute: '2-digit', second: '2-digit'
-            })}`;
+            document.getElementById('upCount').textContent = indexData.filter(i => i.change > 0.01).length;
+            document.getElementById('downCount').textContent = indexData.filter(i => i.change < -0.01).length;
+            document.getElementById('flatCount').textContent = indexData.filter(i => Math.abs(i.change) <= 0.01).length;
         }
 
         function getFilteredIndices() {
@@ -421,6 +271,11 @@
             const indices = getFilteredIndices();
             const regions = document.getElementById('regions');
             
+            if (indices.length === 0) {
+                regions.innerHTML = '<div class="loading"><div>没有符合条件的指数</div></div>';
+                return;
+            }
+
             // 按地区分组
             const groups = {};
             indices.forEach(i => {
@@ -428,12 +283,9 @@
                 groups[i.area].push(i);
             });
 
-            // 排序：先按涨跌幅，再按值
+            // 排序
             Object.keys(groups).forEach(area => {
-                groups[area].sort((a, b) => {
-                    if (a.change !== b.change) return b.change - a.change;
-                    return (b.value || 0) - (a.value || 0);
-                });
+                groups[area].sort((a, b) => b.change - a.change);
             });
 
             const areaOrder = ["北美洲", "南美洲", "欧洲", "亚洲", "大洋洲", "中东", "非洲"];
@@ -447,19 +299,6 @@
                     <div class="indices">`;
                 
                 groups[area].forEach(i => {
-                    if (i.error) {
-                        html += `<div class="index-card error">
-                            <div class="index-header">
-                                <div>
-                                    <div class="index-name">${i.name}</div>
-                                    <div class="index-region">📍 ${i.region}</div>
-                                </div>
-                            </div>
-                            <div class="index-value" style="color:#888">加载失败</div>
-                        </div>`;
-                        return;
-                    }
-                    
                     const changeClass = i.change > 0.01 ? 'up' : (i.change < -0.01 ? 'down' : 'flat');
                     const changeStr = i.change > 0 ? `+${i.change.toFixed(2)}%` : 
                                       (i.change < 0 ? `${i.change.toFixed(2)}%` : '0.00%');
@@ -480,7 +319,7 @@
                 html += `</div></div>`;
             });
 
-            regions.innerHTML = html || '<p style="text-align:center;color:#888;padding:40px;">没有符合条件的指数</p>';
+            regions.innerHTML = html;
         }
 
         function filter(type) {
@@ -495,9 +334,7 @@
             render();
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            loadAllData();
-        });
+        document.addEventListener('DOMContentLoaded', loadData);
     </script>
 </body>
 </html>
