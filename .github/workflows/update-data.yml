@@ -16,136 +16,134 @@ jobs:
       
       - name: Fetch Stock Data
         run: |
-          # 创建数据目录
           mkdir -p data
           
-          # 获取股票数据的函数
-          fetch_index() {
-            local symbol=$1
-            local url="https://stooq.com/q/l/?s=${symbol}&f=sd2t2ohlc&h&e=csv"
-            local csv=$(curl -s "$url")
-            
-            # 解析CSV（跳过标题行）
-            local data=$(echo "$csv" | tail -1)
-            
-            if [[ "$data" == *"N/D"* ]] || [[ -z "$data" ]]; then
-              echo "null"
-              return
-            fi
-            
-            # 提取数据
-            IFS=',' read -r sym date time open high low close <<< "$data"
-            
-            # 计算涨跌幅
-            if [[ -n "$open" ]] && [[ "$open" != "N/D" ]] && [[ -n "$close" ]] && [[ "$close" != "N/D" ]]; then
-              local change=$(echo "scale=2; (($close - $open) / $open) * 100" | bc 2>/dev/null || echo "0")
-              echo "{\"value\": $close, \"change\": $change}"
-            else
-              echo "null"
-            fi
-          }
-          
-          # 创建JSON数据
-          cat > data/indices.json << 'JSONSTART'
-          {
-            "update_time": "JSONTIME",
-            "indices": [
-          JSONSTART
-          
           # 获取当前时间
-          update_time=$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')
-          sed -i "s/JSONTIME/$update_time/" data/indices.json
+          UPDATE_TIME=$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')
           
-          # 指数列表
-          declare -A indices=(
+          # Yahoo Finance 指数列表
+          declare -a YAHOO_INDICES=(
             # 北美洲
-            ["^SPX"]="标普500|美国|北美洲|USD"
-            ["^DJI"]="道琼斯|美国|北美洲|USD"
-            ["^NDX"]="纳斯达克100|美国|北美洲|USD"
-            ["^GSPTSE"]="多伦多综指|加拿大|北美洲|CAD"
-            
+            "^GSPC|标普500|美国|北美洲|USD"
+            "^DJI|道琼斯|美国|北美洲|USD"
+            "^IXIC|纳斯达克|美国|北美洲|USD"
+            "^GSPTSE|多伦多综指|加拿大|北美洲|CAD"
+            "^MXX|墨西哥IPC|墨西哥|北美洲|MXN"
             # 南美洲
-            ["^BVSP"]="巴西BOVESPA|巴西|南美洲|BRL"
-            ["^MERV"]="阿根廷MERVAL|阿根廷|南美洲|ARS"
-            
+            "^BVSP|巴西BOVESPA|巴西|南美洲|BRL"
+            "^MERV|阿根廷MERVAL|阿根廷|南美洲|ARS"
             # 欧洲
-            ["^UKX"]="富时100|英国|欧洲|GBP"
-            ["^DAX"]="德国DAX|德国|欧洲|EUR"
-            ["^CAC"]="法国CAC40|法国|欧洲|EUR"
-            ["^FTMIB"]="意大利MIB|意大利|欧洲|EUR"
-            ["^IBEX"]="西班牙IBEX35|西班牙|欧洲|EUR"
-            ["^SMI"]="瑞士SMI|瑞士|欧洲|CHF"
-            ["^AEX"]="荷兰AEX|荷兰|欧洲|EUR"
-            
-            # 亚洲
-            ["^NKY"]="日经225|日本|亚洲|JPY"
-            ["^HSI"]="恒生指数|香港|亚洲|HKD"
-            ["^STI"]="新加坡海峡|新加坡|亚洲|SGD"
-            ["^KS11"]="韩国KOSPI|韩国|亚洲|KRW"
-            ["^NIFTY"]="印度NIFTY50|印度|亚洲|INR"
-            ["^BSESN"]="印度SENSEX|印度|亚洲|INR"
-            ["^JKSE"]="印尼综指|印尼|亚洲|IDR"
-            ["^SET"]="泰国SET|泰国|亚洲|THB"
-            ["^KLSE"]="马来西亚综指|马来西亚|亚洲|MYR"
-            
+            "^FTSE|富时100|英国|欧洲|GBP"
+            "^GDAXI|德国DAX|德国|欧洲|EUR"
+            "^FCHI|法国CAC40|法国|欧洲|EUR"
+            "FTSEMIB.MI|意大利MIB|意大利|欧洲|EUR"
+            "^IBEX|西班牙IBEX35|西班牙|欧洲|EUR"
+            "^SSMI|瑞士SMI|瑞士|欧洲|CHF"
+            "^AEX|荷兰AEX|荷兰|欧洲|EUR"
+            # 亚洲 - 中国
+            "000001.SS|上证指数|中国|亚洲|CNY"
+            "399001.SZ|深证成指|中国|亚洲|CNY"
+            "000300.SS|沪深300|中国|亚洲|CNY"
+            "000016.SS|上证50|中国|亚洲|CNY"
+            "399006.SZ|创业板指|中国|亚洲|CNY"
+            "399005.SZ|中小板指|中国|亚洲|CNY"
+            # 亚洲 - 其他
+            "^N225|日经225|日本|亚洲|JPY"
+            "^HSI|恒生指数|香港|亚洲|HKD"
+            "^TWII|台湾加权|台湾|亚洲|TWD"
+            "^KS11|韩国KOSPI|韩国|亚洲|KRW"
+            "^NSEI|印度NIFTY50|印度|亚洲|INR"
+            "^BSESN|印度SENSEX|印度|亚洲|INR"
+            "^JKSE|印尼综指|印尼|亚洲|IDR"
+            "^SET.BK|泰国SET|泰国|亚洲|THB"
+            "^KLSE|马来西亚综指|马来西亚|亚洲|MYR"
+            "^STI|新加坡海峡|新加坡|亚洲|SGD"
+            "^PSEI|菲律宾综指|菲律宾|亚洲|PHP"
             # 大洋洲
-            ["^AXJO"]="澳洲ASX200|澳大利亚|大洋洲|AUD"
-            ["^NZ50"]="新西兰NZX50|新西兰|大洋洲|NZD"
+            "^AXJO|澳洲ASX200|澳大利亚|大洋洲|AUD"
+            "^NZ50|新西兰NZX50|新西兰|大洋洲|NZD"
+            # 中东
+            "^TASI.SR|沙特TASI|沙特|中东|SAR"
+            "TA125.TA|以色列TA125|以色列|中东|ILS"
+            # 非洲
+            "^JN0U.JO|南非JSE|南非|非洲|ZAR"
           )
           
+          echo "{" > data/indices.json
+          echo "  \"update_time\": \"$UPDATE_TIME\"," >> data/indices.json
+          echo "  \"indices\": [" >> data/indices.json
+          
           first=true
-          for symbol in "${!indices[@]}"; do
-            IFS='|' read -r name region area currency <<< "${indices[$symbol]}"
+          for item in "${YAHOO_INDICES[@]}"; do
+            IFS='|' read -r symbol name region area currency <<< "$item"
             
-            # 获取数据
-            csv_data=$(curl -s "https://stooq.com/q/l/?s=${symbol}&f=sd2t2ohlc&h&e=csv")
-            data_line=$(echo "$csv_data" | tail -1)
+            # 通过 allorigins 代理获取 Yahoo Finance 数据
+            url="https://api.allorigins.win/raw?url=https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=2d"
+            response=$(curl -s --max-time 15 "$url")
             
-            if [[ "$data_line" == *"N/D"* ]] || [[ -z "$data_line" ]]; then
+            if [[ -z "$response" ]] || [[ "$response" == *"error"* ]]; then
+              echo "跳过 $name: 获取失败" >&2
               continue
             fi
             
-            IFS=',' read -r sym date time open high low close <<< "$data_line"
+            # 提取数据
+            current=$(echo "$response" | python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    q = d['chart']['result'][0]['indicators']['quote'][0]
+    closes = [c for c in q['close'] if c is not None]
+    if len(closes) >= 2:
+        curr, prev = closes[-1], closes[-2]
+        change = ((curr - prev) / prev) * 100
+        print(f'{curr:.2f}|{change:.2f}')
+    elif len(closes) == 1:
+        print(f'{closes[0]:.2f}|0.00')
+except:
+    pass
+" 2>/dev/null)
             
-            if [[ -n "$close" ]] && [[ "$close" != "N/D" ]]; then
-              # 计算涨跌幅
-              if [[ -n "$open" ]] && [[ "$open" != "N/D" ]] && [[ "$open" != "0" ]]; then
-                change=$(awk "BEGIN {printf \"%.2f\", (($close - $open) / $open) * 100}")
-              else
-                change="0.00"
-              fi
-              
-              if [ "$first" = true ]; then
-                first=false
-              else
-                echo "," >> data/indices.json
-              fi
-              
-              cat >> data/indices.json << ENTRY
+            if [[ -z "$current" ]]; then
+              echo "跳过 $name: 解析失败" >&2
+              continue
+            fi
+            
+            value=$(echo "$current" | cut -d'|' -f1)
+            change=$(echo "$current" | cut -d'|' -f2)
+            
+            if [[ "$first" == "true" ]]; then
+              first=false
+            else
+              echo "," >> data/indices.json
+            fi
+            
+            cat >> data/indices.json << ENTRY
               {
                 "id": "${symbol}",
                 "name": "${name}",
                 "region": "${region}",
                 "area": "${area}",
-                "value": ${close},
+                "value": ${value},
                 "change": ${change},
                 "currency": "${currency}"
               }
-          ENTRY
-            fi
+ENTRY
+            echo "已获取: $name = $value ($change%)"
           done
           
           echo "" >> data/indices.json
-          echo "]" >> data/indices.json
+          echo "  ]" >> data/indices.json
           echo "}" >> data/indices.json
           
-          echo "Data updated at $update_time"
-          cat data/indices.json
+          echo ""
+          echo "=== 数据更新完成 ==="
+          echo "更新时间: $UPDATE_TIME"
+          echo "指数数量: $(cat data/indices.json | grep -c '"id"')"
       
       - name: Commit and Push
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add data/indices.json
-          git diff --quiet && git diff --staged --quiet || git commit -m "📊 更新股票指数数据 - $(date '+%Y-%m-%d %H:%M')"
+          git diff --quiet && git diff --staged --quiet || git commit -m "📊 更新股票指数数据 - $(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M')"
           git push
