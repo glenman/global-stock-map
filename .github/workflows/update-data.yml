@@ -16,66 +16,49 @@ jobs:
         uses: actions/checkout@v4
       
       - name: Fetch Stock Data
+        env:
+          YAHOO_INDICES: |
+            ^GSPC|标普500|美国|北美洲|USD
+            ^DJI|道琼斯|美国|北美洲|USD
+            ^IXIC|纳斯达克|美国|北美洲|USD
+            000001.SS|上证指数|中国|亚洲|CNY
+            399001.SZ|深证成指|中国|亚洲|CNY
+            ^N225|日经225|日本|亚洲|JPY
+            ^HSI|恒生指数|香港|亚洲|HKD
+            ^FTSE|富时100|英国|欧洲|GBP
+            ^GDAXI|德国DAX|德国|欧洲|EUR
+            ^FCHI|法国CAC40|法国|欧洲|EUR
         run: |
           mkdir -p data
           UPDATE_TIME=$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')
           
-          # 创建JSON文件头部
-          cat > data/indices.json << JSONHEAD
-          {
-            "update_time": "$UPDATE_TIME",
-            "indices": [
-          JSONHEAD
-          
-          # 指数数据
-          INDICES='
-          ^GSPC|标普500|美国|北美洲|USD
-          ^DJI|道琼斯|美国|北美洲|USD
-          ^IXIC|纳斯达克|美国|北美洲|USD
-          ^GSPTSE|多伦多综指|加拿大|北美洲|CAD
-          ^MXX|墨西哥IPC|墨西哥|北美洲|MXN
-          ^BVSP|巴西BOVESPA|巴西|南美洲|BRL
-          ^MERV|阿根廷MERVAL|阿根廷|南美洲|ARS
-          ^FTSE|富时100|英国|欧洲|GBP
-          ^GDAXI|德国DAX|德国|欧洲|EUR
-          ^FCHI|法国CAC40|法国|欧洲|EUR
-          FTSEMIB.MI|意大利MIB|意大利|欧洲|EUR
-          ^IBEX|西班牙IBEX35|西班牙|欧洲|EUR
-          ^SSMI|瑞士SMI|瑞士|欧洲|CHF
-          ^AEX|荷兰AEX|荷兰|欧洲|EUR
-          000001.SS|上证指数|中国|亚洲|CNY
-          399001.SZ|深证成指|中国|亚洲|CNY
-          000300.SS|沪深300|中国|亚洲|CNY
-          000016.SS|上证50|中国|亚洲|CNY
-          399006.SZ|创业板指|中国|亚洲|CNY
-          399005.SZ|中小板指|中国|亚洲|CNY
-          ^N225|日经225|日本|亚洲|JPY
-          ^HSI|恒生指数|香港|亚洲|HKD
-          ^TWII|台湾加权|台湾|亚洲|TWD
-          ^KS11|韩国KOSPI|韩国|亚洲|KRW
-          ^NSEI|印度NIFTY50|印度|亚洲|INR
-          ^BSESN|印度SENSEX|印度|亚洲|INR
-          ^JKSE|印尼综指|印尼|亚洲|IDR
-          ^SET.BK|泰国SET|泰国|亚洲|THB
-          ^KLSE|马来西亚综指|马来西亚|亚洲|MYR
-          ^STI|新加坡海峡|新加坡|亚洲|SGD
-          ^PSEI|菲律宾综指|菲律宾|亚洲|PHP
-          ^AXJO|澳洲ASX200|澳大利亚|大洋洲|AUD
-          ^NZ50|新西兰NZX50|新西兰|大洋洲|NZD
-          ^TASI.SR|沙特TASI|沙特|中东|SAR
-          TA125.TA|以色列TA125|以色列|中东|ILS
-          ^JN0U.JO|南非JSE|南非|非洲|ZAR
-          '
+          # 初始化JSON
+          echo '{' > data/indices.json
+          echo '  "update_time": "'"$UPDATE_TIME"'",' >> data/indices.json
+          echo '  "indices": [' >> data/indices.json
           
           FIRST=true
-          echo "$INDICES" | grep -v '^$' | while IFS='|' read -r SYMBOL NAME REGION AREA CURRENCY; do
+          SUCCESS_COUNT=0
+          FAIL_COUNT=0
+          
+          while IFS='|' read -r SYMBOL NAME REGION AREA CURRENCY; do
             [ -z "$SYMBOL" ] && continue
             
-            URL="https://api.allorigins.win/raw?url=https://query1.finance.yahoo.com/v8/finance/chart/${SYMBOL}?interval=1d&range=2d"
-            RESPONSE=$(curl -s --max-time 15 "$URL")
+            # 尝试3次
+            for RETRY in 1 2 3; do
+              URL="https://query1.finance.yahoo.com/v8/finance/chart/${SYMBOL}?interval=1d&range=2d"
+              RESPONSE=$(curl -s --max-time 20 "$URL" 2>&1)
+              
+              if [ -n "$RESPONSE" ] && ! echo "$RESPONSE" | grep -q "error"; then
+                break
+              fi
+              
+              [ $RETRY -lt 3 ] && sleep 2
+            done
             
             if [ -z "$RESPONSE" ] || echo "$RESPONSE" | grep -q "error"; then
-              echo "跳过 $NAME: 获取失败" >&2
+              echo "❌ $NAME: 获取失败" >&2
+              FAIL_COUNT=$((FAIL_COUNT + 1))
               continue
             fi
             
@@ -92,12 +75,13 @@ jobs:
                   print(f'{curr:.2f}|{change:.2f}')
               elif len(closes) == 1:
                   print(f'{closes[0]:.2f}|0.00')
-          except:
-              pass
-          " 2>/dev/null)
+          except Exception as e:
+              print(f'ERROR: {e}', file=sys.stderr)
+          " 2>&1)
             
-            if [ -z "$DATA" ]; then
-              echo "跳过 $NAME: 解析失败" >&2
+            if [ -z "$DATA" ] || echo "$DATA" | grep -q "ERROR"; then
+              echo "❌ $NAME: 解析失败" >&2
+              FAIL_COUNT=$((FAIL_COUNT + 1))
               continue
             fi
             
@@ -107,28 +91,47 @@ jobs:
             if [ "$FIRST" = "true" ]; then
               FIRST=false
             else
-              echo "," >> data/indices.json
+              echo ',' >> data/indices.json
             fi
             
-            printf '              {\n                "id": "%s",\n                "name": "%s",\n                "region": "%s",\n                "area": "%s",\n                "value": %s,\n                "change": %s,\n                "currency": "%s"\n              }' \
-              "$SYMBOL" "$NAME" "$REGION" "$AREA" "$VALUE" "$CHANGE" "$CURRENCY" >> data/indices.json
+            cat >> data/indices.json << ENTRY
+              {
+                "id": "${SYMBOL}",
+                "name": "${NAME}",
+                "region": "${REGION}",
+                "area": "${AREA}",
+                "value": ${VALUE},
+                "change": ${CHANGE},
+                "currency": "${CURRENCY}"
+              }
+          ENTRY
             
-            echo "已获取: $NAME = $VALUE ($CHANGE%)"
-          done
+            echo "✓ $NAME = $VALUE ($CHANGE%)"
+            SUCCESS_COUNT=$((SUCCESS_COUNT + 1))
+            
+            # 避免请求过快
+            sleep 1
+            
+          done <<< "$YAHOO_INDICES"
           
-          echo "" >> data/indices.json
-          echo "  ]" >> data/indices.json
-          echo "}" >> data/indices.json
+          echo '' >> data/indices.json
+          echo '  ]' >> data/indices.json
+          echo '}' >> data/indices.json
           
           echo ""
           echo "=== 数据更新完成 ==="
           echo "更新时间: $UPDATE_TIME"
-          echo "指数数量: $(grep -c '"id"' data/indices.json)"
+          echo "成功: $SUCCESS_COUNT 个指数"
+          echo "失败: $FAIL_COUNT 个指数"
       
       - name: Commit and Push
         run: |
           git config user.email "action@github.com"
           git config user.name "GitHub Action"
           git add data/indices.json
-          git diff --quiet && git diff --staged --quiet || git commit -m "📊 更新股票指数数据 - $(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M')"
-          git push
+          if git diff --quiet && git diff --staged --quiet; then
+            echo "没有数据变化，跳过提交"
+          else
+            git commit -m "📊 更新股票指数数据 - $(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M')"
+            git push
+          fi
