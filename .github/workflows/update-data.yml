@@ -26,6 +26,8 @@ jobs:
           import json
           import ssl
           import time
+          import os
+          from datetime import datetime
           
           # 忽略 SSL 证书
           ctx = ssl.create_default_context()
@@ -94,8 +96,10 @@ jobs:
               time.sleep(0.5)
           
           # 输出 JSON
+          # 从环境变量获取更新时间，如果没有则使用当前时间
+          update_time = os.environ.get('UPDATE_TIME') or datetime.now().strftime('%Y-%m-%d %H:%M:%S')
           output = {
-              "update_time": UPDATE_TIME,
+              "update_time": update_time,
               "indices": results
           }
           
