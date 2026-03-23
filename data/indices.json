@@ -1,6 +1,95 @@
 {
-  "update_time": "2026-03-24 06:36:56",
+  "update_time": "2026-03-24 06:45:50",
   "indices": [
-
+    {
+      "id": "^GSPC",
+      "name": "标普500",
+      "region": "美国",
+      "area": "北美洲",
+      "value": 6581.0,
+      "change": 1.15,
+      "currency": "USD"
+    },
+    {
+      "id": "^DJI",
+      "name": "道琼斯",
+      "region": "美国",
+      "area": "北美洲",
+      "value": 46208.47,
+      "change": 1.38,
+      "currency": "USD"
+    },
+    {
+      "id": "^IXIC",
+      "name": "纳斯达克",
+      "region": "美国",
+      "area": "北美洲",
+      "value": 21946.76,
+      "change": 1.38,
+      "currency": "USD"
+    },
+    {
+      "id": "000001.SS",
+      "name": "上证指数",
+      "region": "中国",
+      "area": "亚洲",
+      "value": 3813.28,
+      "change": -3.63,
+      "currency": "CNY"
+    },
+    {
+      "id": "399001.SZ",
+      "name": "深证成指",
+      "region": "中国",
+      "area": "亚洲",
+      "value": 13345.51,
+      "change": -3.76,
+      "currency": "CNY"
+    },
+    {
+      "id": "^N225",
+      "name": "日经225",
+      "region": "日本",
+      "area": "亚洲",
+      "value": 51515.49,
+      "change": -3.48,
+      "currency": "JPY"
+    },
+    {
+      "id": "^HSI",
+      "name": "恒生指数",
+      "region": "香港",
+      "area": "亚洲",
+      "value": 24382.47,
+      "change": -3.54,
+      "currency": "HKD"
+    },
+    {
+      "id": "^FTSE",
+      "name": "富时100",
+      "region": "英国",
+      "area": "欧洲",
+      "value": 9894.15,
+      "change": -0.24,
+      "currency": "GBP"
+    },
+    {
+      "id": "^GDAXI",
+      "name": "德国DAX",
+      "region": "德国",
+      "area": "欧洲",
+      "value": 22653.86,
+      "change": 1.22,
+      "currency": "EUR"
+    },
+    {
+      "id": "^FCHI",
+      "name": "法国CAC40",
+      "region": "法国",
+      "area": "欧洲",
+      "value": 7726.2,
+      "change": 0.79,
+      "currency": "EUR"
+    }
   ]
 }
