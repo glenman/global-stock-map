@@ -26,6 +26,30 @@
             background-clip: text;
         }
         .update-time { color: #888; font-size: 14px; }
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(26, 26, 46, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #2d2d44;
+            border-top-color: #00d4ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { color: #888; }
         .stats {
             display: flex;
             justify-content: center;
@@ -83,10 +107,22 @@
             font-size: 14px;
             outline: none;
         }
-        .search-box input:focus {
-            border-color: #00d4ff;
-        }
+        .search-box input:focus { border-color: #00d4ff; }
         .search-box input::placeholder { color: #666; }
+        .refresh-btn {
+            display: block;
+            margin: 0 auto 20px;
+            padding: 10px 30px;
+            background: linear-gradient(135deg, #00d4ff, #7c3aed);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: transform 0.2s;
+        }
+        .refresh-btn:hover { transform: scale(1.05); }
+        .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .regions {
             max-width: 1400px;
             margin: 0 auto;
@@ -116,12 +152,15 @@
             border-radius: 12px;
             padding: 20px;
             transition: all 0.3s;
-            cursor: pointer;
         }
         .index-card:hover {
             background: rgba(255,255,255,0.08);
             transform: translateY(-2px);
             box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+        }
+        .index-card.error {
+            border-color: #ef4444;
+            opacity: 0.6;
         }
         .index-header {
             display: flex;
@@ -129,15 +168,8 @@
             align-items: flex-start;
             margin-bottom: 12px;
         }
-        .index-name {
-            font-size: 18px;
-            font-weight: bold;
-        }
-        .index-region {
-            font-size: 12px;
-            color: #888;
-            margin-top: 3px;
-        }
+        .index-name { font-size: 18px; font-weight: bold; }
+        .index-region { font-size: 12px; color: #888; margin-top: 3px; }
         .index-change {
             padding: 6px 12px;
             border-radius: 6px;
@@ -147,15 +179,8 @@
         .index-change.up { background: rgba(239,68,68,0.2); color: #ef4444; }
         .index-change.down { background: rgba(34,197,94,0.2); color: #22c55e; }
         .index-change.flat { background: rgba(107,114,128,0.2); color: #6b7280; }
-        .index-value {
-            font-size: 28px;
-            font-weight: bold;
-            margin-bottom: 8px;
-        }
-        .index-currency {
-            font-size: 12px;
-            color: #888;
-        }
+        .index-value { font-size: 28px; font-weight: bold; margin-bottom: 8px; }
+        .index-currency { font-size: 12px; color: #888; }
         .footer {
             text-align: center;
             margin-top: 40px;
@@ -165,6 +190,14 @@
             font-size: 12px;
         }
         .footer a { color: #00d4ff; text-decoration: none; }
+        .error-msg {
+            text-align: center;
+            color: #ef4444;
+            padding: 20px;
+            background: rgba(239,68,68,0.1);
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
         @media (max-width: 600px) {
             .header h1 { font-size: 24px; }
             .stat-box { padding: 10px 20px; }
@@ -174,6 +207,11 @@
     </style>
 </head>
 <body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">正在获取全球股票指数数据...</div>
+    </div>
+
     <div class="header">
         <h1>🌍 全球股票指数</h1>
         <div class="update-time" id="updateTime">数据更新时间: 加载中...</div>
@@ -194,6 +232,8 @@
         </div>
     </div>
 
+    <button class="refresh-btn" id="refreshBtn" onclick="loadAllData()">🔄 刷新数据</button>
+
     <div class="filter-bar">
         <button class="filter-btn all active" onclick="filter('all')">全部</button>
         <button class="filter-btn up" onclick="filter('up')">📈 上涨</button>
@@ -207,52 +247,61 @@
     <div class="regions" id="regions"></div>
 
     <div class="footer">
-        数据仅供参考 | <a href="https://github.com/glenman/global-stock-map" target="_blank">GitHub</a>
+        数据来源: Yahoo Finance | <a href="https://github.com/glenman/global-stock-map" target="_blank">GitHub</a>
     </div>
 
     <script>
-        const stockData = {
-            "update_time": "2026-03-23 15:30:00",
-            "indices": [
-                {"id":"sp500","name":"标普500","region":"美国","area":"北美洲","value":5230.15,"change":0.85,"currency":"USD"},
-                {"id":"nasdaq","name":"纳斯达克","region":"美国","area":"北美洲","value":16428.82,"change":1.25,"currency":"USD"},
-                {"id":"dow","name":"道琼斯","region":"美国","area":"北美洲","value":39512.84,"change":0.45,"currency":"USD"},
-                {"id":"tsx","name":"多伦多综指","region":"加拿大","area":"北美洲","value":22150.30,"change":-0.15,"currency":"CAD"},
-                {"id":"mexbol","name":"墨西哥IPC","region":"墨西哥","area":"北美洲","value":58230.50,"change":0.32,"currency":"MXN"},
-                {"id":"bovespa","name":"巴西BOVESPA","region":"巴西","area":"南美洲","value":128500.20,"change":-0.78,"currency":"BRL"},
-                {"id":"merval","name":"阿根廷MERVAL","region":"阿根廷","area":"南美洲","value":1125800.00,"change":2.15,"currency":"ARS"},
-                {"id":"ftse100","name":"富时100","region":"英国","area":"欧洲","value":7780.30,"change":-0.50,"currency":"GBP"},
-                {"id":"dax","name":"德国DAX","region":"德国","area":"欧洲","value":18920.10,"change":0.65,"currency":"EUR"},
-                {"id":"cac40","name":"法国CAC40","region":"法国","area":"欧洲","value":8150.40,"change":0.42,"currency":"EUR"},
-                {"id":"ftsemib","name":"意大利MIB","region":"意大利","area":"欧洲","value":38520.80,"change":-0.28,"currency":"EUR"},
-                {"id":"ibex35","name":"西班牙IBEX35","region":"西班牙","area":"欧洲","value":11280.50,"change":0.18,"currency":"EUR"},
-                {"id":"smi","name":"瑞士SMI","region":"瑞士","area":"欧洲","value":11850.30,"change":0.35,"currency":"CHF"},
-                {"id":"aex","name":"荷兰AEX","region":"荷兰","area":"欧洲","value":825.60,"change":-0.12,"currency":"EUR"},
-                {"id":"nikkei225","name":"日经225","region":"日本","area":"亚洲","value":38950.20,"change":-0.32,"currency":"JPY"},
-                {"id":"topix","name":"东证TOPIX","region":"日本","area":"亚洲","value":2725.50,"change":-0.25,"currency":"JPY"},
-                {"id":"hs300","name":"沪深300","region":"中国","area":"亚洲","value":3850.50,"change":0.25,"currency":"CNY"},
-                {"id":"sse","name":"上证指数","region":"中国","area":"亚洲","value":3085.20,"change":0.18,"currency":"CNY"},
-                {"id":"szse","name":"深证成指","region":"中国","area":"亚洲","value":9580.30,"change":0.35,"currency":"CNY"},
-                {"id":"hsi","name":"恒生指数","region":"香港","area":"亚洲","value":17250.80,"change":-0.85,"currency":"HKD"},
-                {"id":"twse","name":"台湾加权","region":"台湾","area":"亚洲","value":20150.40,"change":0.68,"currency":"TWD"},
-                {"id":"kospi","name":"韩国KOSPI","region":"韩国","area":"亚洲","value":2750.30,"change":0.45,"currency":"KRW"},
-                {"id":"kosdaq","name":"韩国KOSDAQ","region":"韩国","area":"亚洲","value":875.20,"change":1.12,"currency":"KRW"},
-                {"id":"nifty50","name":"印度NIFTY50","region":"印度","area":"亚洲","value":22450.80,"change":0.92,"currency":"INR"},
-                {"id":"bse","name":"印度SENSEX","region":"印度","area":"亚洲","value":73850.50,"change":0.88,"currency":"INR"},
-                {"id":"jakarta","name":"印尼综指","region":"印尼","area":"亚洲","value":7280.50,"change":-0.42,"currency":"IDR"},
-                {"id":"set","name":"泰国SET","region":"泰国","area":"亚洲","value":1385.20,"change":0.15,"currency":"THB"},
-                {"id":"fklci","name":"马来西亚综指","region":"马来西亚","area":"亚洲","value":1585.30,"change":-0.22,"currency":"MYR"},
-                {"id":"sti","name":"新加坡海峡","region":"新加坡","area":"亚洲","value":3250.80,"change":0.28,"currency":"SGD"},
-                {"id":"psei","name":"菲律宾综指","region":"菲律宾","area":"亚洲","value":6850.40,"change":-0.55,"currency":"PHP"},
-                {"id":"asx200","name":"澳洲ASX200","region":"澳大利亚","area":"大洋洲","value":7850.30,"change":0.38,"currency":"AUD"},
-                {"id":"nzx50","name":"新西兰NZX50","region":"新西兰","area":"大洋洲","value":12250.80,"change":0.22,"currency":"NZD"},
-                {"id":"tadawul","name":"沙特TASI","region":"沙特","area":"中东","value":12250.50,"change":-0.35,"currency":"SAR"},
-                {"id":"tase","name":"以色列TA125","region":"以色列","area":"中东","value":1850.30,"change":0.48,"currency":"ILS"},
-                {"id":"dfm","name":"迪拜DFM","region":"阿联酋","area":"中东","value":4125.80,"change":0.65,"currency":"AED"},
-                {"id":"jse","name":"南非JSE","region":"南非","area":"非洲","value":78520.50,"change":-0.68,"currency":"ZAR"},
-                {"id":"egx30","name":"埃及EGX30","region":"埃及","area":"非洲","value":28500.30,"change":1.25,"currency":"EGP"}
-            ]
-        };
+        // 指数配置 - Yahoo Finance符号
+        const indexConfig = [
+            // 北美洲
+            { symbol: "^GSPC", name: "标普500", region: "美国", area: "北美洲", currency: "USD" },
+            { symbol: "^DJI", name: "道琼斯", region: "美国", area: "北美洲", currency: "USD" },
+            { symbol: "^IXIC", name: "纳斯达克", region: "美国", area: "北美洲", currency: "USD" },
+            { symbol: "^GSPTSE", name: "多伦多综指", region: "加拿大", area: "北美洲", currency: "CAD" },
+            { symbol: "^MXX", name: "墨西哥IPC", region: "墨西哥", area: "北美洲", currency: "MXN" },
+            
+            // 南美洲
+            { symbol: "^BVSP", name: "巴西BOVESPA", region: "巴西", area: "南美洲", currency: "BRL" },
+            { symbol: "^MERV", name: "阿根廷MERVAL", region: "阿根廷", area: "南美洲", currency: "ARS" },
+            
+            // 欧洲
+            { symbol: "^FTSE", name: "富时100", region: "英国", area: "欧洲", currency: "GBP" },
+            { symbol: "^GDAXI", name: "德国DAX", region: "德国", area: "欧洲", currency: "EUR" },
+            { symbol: "^FCHI", name: "法国CAC40", region: "法国", area: "欧洲", currency: "EUR" },
+            { symbol: "FTSEMIB.MI", name: "意大利MIB", region: "意大利", area: "欧洲", currency: "EUR" },
+            { symbol: "^IBEX", name: "西班牙IBEX35", region: "西班牙", area: "欧洲", currency: "EUR" },
+            { symbol: "^SSMI", name: "瑞士SMI", region: "瑞士", area: "欧洲", currency: "CHF" },
+            { symbol: "^AEX", name: "荷兰AEX", region: "荷兰", area: "欧洲", currency: "EUR" },
+            
+            // 亚洲
+            { symbol: "^N225", name: "日经225", region: "日本", area: "亚洲", currency: "JPY" },
+            { symbol: "^TOPIX", name: "东证TOPIX", region: "日本", area: "亚洲", currency: "JPY" },
+            { symbol: "000300.SS", name: "沪深300", region: "中国", area: "亚洲", currency: "CNY" },
+            { symbol: "000001.SS", name: "上证指数", region: "中国", area: "亚洲", currency: "CNY" },
+            { symbol: "399001.SZ", name: "深证成指", region: "中国", area: "亚洲", currency: "CNY" },
+            { symbol: "^HSI", name: "恒生指数", region: "香港", area: "亚洲", currency: "HKD" },
+            { symbol: "^TWII", name: "台湾加权", region: "台湾", area: "亚洲", currency: "TWD" },
+            { symbol: "^KS11", name: "韩国KOSPI", region: "韩国", area: "亚洲", currency: "KRW" },
+            { symbol: "^NSEI", name: "印度NIFTY50", region: "印度", area: "亚洲", currency: "INR" },
+            { symbol: "^BSESN", name: "印度SENSEX", region: "印度", area: "亚洲", currency: "INR" },
+            { symbol: "^JKSE", name: "印尼综指", region: "印尼", area: "亚洲", currency: "IDR" },
+            { symbol: "^SET.BK", name: "泰国SET", region: "泰国", area: "亚洲", currency: "THB" },
+            { symbol: "^KLSE", name: "马来西亚综指", region: "马来西亚", area: "亚洲", currency: "MYR" },
+            { symbol: "^STI", name: "新加坡海峡", region: "新加坡", area: "亚洲", currency: "SGD" },
+            { symbol: "^PSEI", name: "菲律宾综指", region: "菲律宾", area: "亚洲", currency: "PHP" },
+            
+            // 大洋洲
+            { symbol: "^AXJO", name: "澳洲ASX200", region: "澳大利亚", area: "大洋洲", currency: "AUD" },
+            { symbol: "^NZ50", name: "新西兰NZX50", region: "新西兰", area: "大洋洲", currency: "NZD" },
+            
+            // 中东
+            { symbol: "^TASI.SR", name: "沙特TASI", region: "沙特", area: "中东", currency: "SAR" },
+            { symbol: "^TA125.TA", name: "以色列TA125", region: "以色列", area: "中东", currency: "ILS" },
+            
+            // 非洲
+            { symbol: "^JN0U.JO", name: "南非JSE", region: "南非", area: "非洲", currency: "ZAR" },
+            { symbol: "^EGX30", name: "埃及EGX30", region: "埃及", area: "非洲", currency: "EGP" }
+        ];
 
         const areaIcons = {
             "北美洲": "🌎",
@@ -264,22 +313,103 @@
             "非洲": "🌍"
         };
 
+        let indexData = [];
         let currentFilter = 'all';
         let searchTerm = '';
+        let isLoading = false;
+
+        // 通过CORS代理获取Yahoo Finance数据
+        async function fetchIndexData(symbol) {
+            const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=2d`;
+            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+            
+            try {
+                const response = await fetch(proxyUrl);
+                if (!response.ok) throw new Error('Network error');
+                const data = await response.json();
+                
+                if (data.chart && data.chart.result && data.chart.result[0]) {
+                    const result = data.chart.result[0];
+                    const meta = result.meta;
+                    const quotes = result.indicators?.quote?.[0];
+                    
+                    if (quotes && quotes.close) {
+                        const closes = quotes.close.filter(c => c !== null);
+                        const currentPrice = closes[closes.length - 1];
+                        const prevPrice = closes.length > 1 ? closes[closes.length - 2] : currentPrice;
+                        const change = prevPrice > 0 ? ((currentPrice - prevPrice) / prevPrice) * 100 : 0;
+                        
+                        return {
+                            value: currentPrice,
+                            change: change,
+                            currency: meta.currency || 'USD'
+                        };
+                    }
+                }
+                return null;
+            } catch (e) {
+                console.error(`Failed to fetch ${symbol}:`, e);
+                return null;
+            }
+        }
+
+        // 加载所有数据
+        async function loadAllData() {
+            if (isLoading) return;
+            isLoading = true;
+            
+            const refreshBtn = document.getElementById('refreshBtn');
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            refreshBtn.disabled = true;
+            refreshBtn.textContent = '⏳ 加载中...';
+            loadingOverlay.style.display = 'flex';
+            
+            indexData = [];
+            
+            // 批量获取数据，每次5个并发
+            const batchSize = 5;
+            for (let i = 0; i < indexConfig.length; i += batchSize) {
+                const batch = indexConfig.slice(i, i + batchSize);
+                const results = await Promise.all(
+                    batch.map(async (config) => {
+                        const data = await fetchIndexData(config.symbol);
+                        return {
+                            ...config,
+                            ...data,
+                            error: data === null
+                        };
+                    })
+                );
+                indexData.push(...results);
+            }
+            
+            isLoading = false;
+            refreshBtn.disabled = false;
+            refreshBtn.textContent = '🔄 刷新数据';
+            loadingOverlay.style.display = 'none';
+            
+            updateStats();
+            render();
+        }
 
         function updateStats() {
-            const indices = stockData.indices;
-            document.getElementById('upCount').textContent = indices.filter(i => i.change > 0).length;
-            document.getElementById('downCount').textContent = indices.filter(i => i.change < 0).length;
-            document.getElementById('flatCount').textContent = indices.filter(i => i.change === 0).length;
-            document.getElementById('updateTime').textContent = `数据更新时间: ${stockData.update_time}`;
+            const validData = indexData.filter(i => !i.error);
+            document.getElementById('upCount').textContent = validData.filter(i => i.change > 0.01).length;
+            document.getElementById('downCount').textContent = validData.filter(i => i.change < -0.01).length;
+            document.getElementById('flatCount').textContent = validData.filter(i => Math.abs(i.change) <= 0.01).length;
+            
+            const now = new Date();
+            document.getElementById('updateTime').textContent = `数据更新时间: ${now.toLocaleString('zh-CN', { 
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            })}`;
         }
 
         function getFilteredIndices() {
-            return stockData.indices.filter(i => {
+            return indexData.filter(i => {
                 const matchFilter = currentFilter === 'all' || 
-                    (currentFilter === 'up' && i.change > 0) ||
-                    (currentFilter === 'down' && i.change < 0);
+                    (currentFilter === 'up' && i.change > 0.01) ||
+                    (currentFilter === 'down' && i.change < -0.01);
                 const matchSearch = !searchTerm || 
                     i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     i.region.toLowerCase().includes(searchTerm.toLowerCase());
@@ -302,7 +432,7 @@
             Object.keys(groups).forEach(area => {
                 groups[area].sort((a, b) => {
                     if (a.change !== b.change) return b.change - a.change;
-                    return b.value - a.value;
+                    return (b.value || 0) - (a.value || 0);
                 });
             });
 
@@ -317,7 +447,20 @@
                     <div class="indices">`;
                 
                 groups[area].forEach(i => {
-                    const changeClass = i.change > 0 ? 'up' : (i.change < 0 ? 'down' : 'flat');
+                    if (i.error) {
+                        html += `<div class="index-card error">
+                            <div class="index-header">
+                                <div>
+                                    <div class="index-name">${i.name}</div>
+                                    <div class="index-region">📍 ${i.region}</div>
+                                </div>
+                            </div>
+                            <div class="index-value" style="color:#888">加载失败</div>
+                        </div>`;
+                        return;
+                    }
+                    
+                    const changeClass = i.change > 0.01 ? 'up' : (i.change < -0.01 ? 'down' : 'flat');
                     const changeStr = i.change > 0 ? `+${i.change.toFixed(2)}%` : 
                                       (i.change < 0 ? `${i.change.toFixed(2)}%` : '0.00%');
                     
@@ -329,7 +472,7 @@
                             </div>
                             <div class="index-change ${changeClass}">${changeStr}</div>
                         </div>
-                        <div class="index-value">${i.value.toLocaleString()}</div>
+                        <div class="index-value">${i.value.toLocaleString(undefined, {maximumFractionDigits: 2})}</div>
                         <div class="index-currency">货币: ${i.currency}</div>
                     </div>`;
                 });
@@ -353,8 +496,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            updateStats();
-            render();
+            loadAllData();
         });
     </script>
 </body>
