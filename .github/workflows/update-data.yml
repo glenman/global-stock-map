@@ -2,8 +2,8 @@ name: Update Stock Index Data
 
 on:
   schedule:
-    # 每小时更新一次（整点）
-    - cron: '0 * * * *'
+    # 每30分钟更新一次
+    - cron: '*/30 * * * *'
   workflow_dispatch:  # 手动触发
 
 jobs:
