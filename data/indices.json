@@ -1,5 +1,5 @@
 {
-  "update_time": "2026-03-24 07:52:23",
+  "update_time": "2026-03-24 08:59:05",
   "indices": [
     {
       "id": "^GSPC",
@@ -45,15 +45,6 @@
       "value": 13345.51,
       "change": -3.76,
       "currency": "CNY"
-    },
-    {
-      "id": "^N225",
-      "name": "日经225",
-      "region": "日本",
-      "area": "亚洲",
-      "value": 51515.49,
-      "change": -3.48,
-      "currency": "JPY"
     },
     {
       "id": "^HSI",
