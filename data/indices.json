@@ -1,5 +1,5 @@
 {
-  "update_time": "2026-03-24 16:08:02",
+  "update_time": "2026-03-24 17:30:35",
   "indices": [
     {
       "id": "^GSPC",
@@ -60,9 +60,36 @@
       "name": "恒生指数",
       "region": "香港",
       "area": "亚洲",
-      "value": 25011.56,
-      "change": 2.58,
+      "value": 25063.71,
+      "change": 2.79,
       "currency": "HKD"
+    },
+    {
+      "id": "^FTSE",
+      "name": "富时100",
+      "region": "英国",
+      "area": "欧洲",
+      "value": 9850.45,
+      "change": -0.44,
+      "currency": "GBP"
+    },
+    {
+      "id": "^GDAXI",
+      "name": "德国DAX",
+      "region": "德国",
+      "area": "欧洲",
+      "value": 22450.42,
+      "change": -0.9,
+      "currency": "EUR"
+    },
+    {
+      "id": "^FCHI",
+      "name": "法国CAC40",
+      "region": "法国",
+      "area": "欧洲",
+      "value": 7697.34,
+      "change": -0.37,
+      "currency": "EUR"
     }
   ]
 }
