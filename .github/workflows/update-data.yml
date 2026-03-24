@@ -2,7 +2,7 @@ name: Update Stock Index Data
 
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '3,33 * * * *'
   workflow_dispatch:
 
 permissions:
