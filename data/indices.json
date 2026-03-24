@@ -1,13 +1,13 @@
 {
-  "update_time": "2026-03-25 01:58:59",
+  "update_time": "2026-03-25 03:14:23",
   "indices": [
     {
       "id": "^GSPC",
       "name": "标普500",
       "region": "美国",
       "area": "北美洲",
-      "value": 6565.82,
-      "change": -0.23,
+      "value": 6580.08,
+      "change": -0.01,
       "currency": "USD"
     },
     {
@@ -15,8 +15,8 @@
       "name": "道琼斯",
       "region": "美国",
       "area": "北美洲",
-      "value": 46212.56,
-      "change": 0.01,
+      "value": 46311.61,
+      "change": 0.22,
       "currency": "USD"
     },
     {
@@ -24,8 +24,8 @@
       "name": "纳斯达克",
       "region": "美国",
       "area": "北美洲",
-      "value": 21786.74,
-      "change": -0.73,
+      "value": 21848.99,
+      "change": -0.45,
       "currency": "USD"
     },
     {
