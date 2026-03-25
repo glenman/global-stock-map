@@ -34,32 +34,67 @@ jobs:
           ctx.check_hostname = False
           ctx.verify_mode = ssl.CERT_NONE
           
-          # 代理列表
+          # 代理列表 (用于 Yahoo Finance)
           PROXIES = [
               lambda url: f"https://api.allorigins.win/raw?url={urllib.parse.quote(url, safe='')}",
               lambda url: f"https://corsproxy.io/?{urllib.parse.quote(url, safe='')}",
               lambda url: url,  # 直连
           ]
           
-          INDICES = [
-              ("^GSPC", "标普500", "美国", "北美洲", "USD"),
-              ("^DJI", "道琼斯", "美国", "北美洲", "USD"),
-              ("^IXIC", "纳斯达克", "美国", "北美洲", "USD"),
-              ("000001.SS", "上证指数", "中国", "亚洲", "CNY"),
-              ("399001.SZ", "深证成指", "中国", "亚洲", "CNY"),
-              ("^N225", "日经225", "日本", "亚洲", "JPY"),
-              ("^HSI", "恒生指数", "香港", "亚洲", "HKD"),
-              ("^FTSE", "富时100", "英国", "欧洲", "GBP"),
-              ("^GDAXI", "德国DAX", "德国", "欧洲", "EUR"),
-              ("^FCHI", "法国CAC40", "法国", "欧洲", "EUR"),
-          ]
+          # 新浪财经 API (中国指数专用)
+          def fetch_from_sina(symbol, name, region, area, currency):
+              """从新浪财经获取中国相关指数"""
+              sina_map = {
+                  "000001.SS": "sh000001",  # 上证指数
+                  "399001.SZ": "sz399001",  # 深证成指
+                  "^HSI": "hkHSI",          # 恒生指数
+              }
+              
+              sina_code = sina_map.get(symbol)
+              if not sina_code:
+                  return None
+              
+              try:
+                  url = f"https://hq.sinajs.cn/list={sina_code}"
+                  req = urllib.request.Request(url, headers={
+                      'Referer': 'https://finance.sina.com.cn',
+                      'User-Agent': 'Mozilla/5.0'
+                  })
+                  
+                  with urllib.request.urlopen(req, timeout=10) as resp:
+                      text = resp.read().decode('gbk')
+                      values = text.split('"')[1].split(',')
+                      
+                      if symbol in ["000001.SS", "399001.SZ"]:
+                          # 上证/深证: 名称,开盘,昨收,当前,最高,最低,...
+                          curr = float(values[3])
+                          prev = float(values[2])
+                          change = ((curr - prev) / prev) * 100
+                      else:  # ^HSI
+                          # 恒生: 代码,名称,当前,昨收,最高,最低,开盘,涨跌点数,涨跌幅,...
+                          curr = float(values[3])
+                          change = float(values[8])
+                      
+                      data = {
+                          "id": symbol,
+                          "name": name,
+                          "region": region,
+                          "area": area,
+                          "value": round(curr, 2),
+                          "change": round(change, 2),
+                          "currency": currency
+                      }
+                      print(f"✓ {name} = {curr:.2f} ({change:+.2f}%) [新浪]")
+                      return data
+              except Exception as e:
+                  print(f"⚠️  {name}: 新浪API失败 - {e}")
+                  return None
           
-          results = []
-          
-          for symbol, name, region, area, currency in INDICES:
+          # Yahoo Finance API (美欧日指数)
+          def fetch_from_yahoo(symbol, name, region, area, currency):
+              """从 Yahoo Finance 获取指数"""
               yahoo_url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=2d"
               
-              data = None
               for proxy_func in PROXIES:
                   try:
                       url = proxy_func(yahoo_url)
@@ -83,10 +118,38 @@ jobs:
                                   "change": round(change, 2),
                                   "currency": currency
                               }
-                              print(f"✓ {name} = {curr:.2f} ({change:+.2f}%)")
-                              break
+                              print(f"✓ {name} = {curr:.2f} ({change:+.2f}%) [Yahoo]")
+                              return data
                   except Exception as e:
                       continue
+              return None
+          
+          INDICES = [
+              ("^GSPC", "标普500", "美国", "北美洲", "USD", "yahoo"),
+              ("^DJI", "道琼斯", "美国", "北美洲", "USD", "yahoo"),
+              ("^IXIC", "纳斯达克", "美国", "北美洲", "USD", "yahoo"),
+              ("000001.SS", "上证指数", "中国", "亚洲", "CNY", "sina"),
+              ("399001.SZ", "深证成指", "中国", "亚洲", "CNY", "sina"),
+              ("^N225", "日经225", "日本", "亚洲", "JPY", "yahoo"),
+              ("^HSI", "恒生指数", "香港", "亚洲", "HKD", "sina"),
+              ("^FTSE", "富时100", "英国", "欧洲", "GBP", "yahoo"),
+              ("^GDAXI", "德国DAX", "德国", "欧洲", "EUR", "yahoo"),
+              ("^FCHI", "法国CAC40", "法国", "欧洲", "EUR", "yahoo"),
+          ]
+          
+          results = []
+          
+          for symbol, name, region, area, currency, source in INDICES:
+              data = None
+              
+              # 根据数据源选择不同的获取方式
+              if source == "sina":
+                  data = fetch_from_sina(symbol, name, region, area, currency)
+                  # 如果新浪失败，尝试 Yahoo 作为备用
+                  if not data:
+                      data = fetch_from_yahoo(symbol, name, region, area, currency)
+              else:  # yahoo
+                  data = fetch_from_yahoo(symbol, name, region, area, currency)
               
               if data:
                   results.append(data)
