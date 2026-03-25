@@ -1,5 +1,5 @@
 {
-  "update_time": "2026-03-25 07:36:50",
+  "update_time": "2026-03-25 09:42:08",
   "indices": [
     {
       "id": "^GSPC",
@@ -7,7 +7,7 @@
       "region": "美国",
       "area": "北美洲",
       "value": 6556.37,
-      "change": -0.37,
+      "change": 0.0,
       "currency": "USD"
     },
     {
@@ -16,7 +16,7 @@
       "region": "美国",
       "area": "北美洲",
       "value": 46124.06,
-      "change": -0.18,
+      "change": 0.0,
       "currency": "USD"
     },
     {
@@ -25,44 +25,17 @@
       "region": "美国",
       "area": "北美洲",
       "value": 21761.89,
-      "change": -0.84,
+      "change": 0.0,
       "currency": "USD"
-    },
-    {
-      "id": "000001.SS",
-      "name": "上证指数",
-      "region": "中国",
-      "area": "亚洲",
-      "value": 3881.28,
-      "change": 1.78,
-      "currency": "CNY"
-    },
-    {
-      "id": "399001.SZ",
-      "name": "深证成指",
-      "region": "中国",
-      "area": "亚洲",
-      "value": 13536.56,
-      "change": 1.43,
-      "currency": "CNY"
     },
     {
       "id": "^N225",
       "name": "日经225",
       "region": "日本",
       "area": "亚洲",
-      "value": 52252.28,
-      "change": 1.43,
+      "value": 53804.23,
+      "change": 2.97,
       "currency": "JPY"
-    },
-    {
-      "id": "^HSI",
-      "name": "恒生指数",
-      "region": "香港",
-      "area": "亚洲",
-      "value": 25063.71,
-      "change": 2.79,
-      "currency": "HKD"
     },
     {
       "id": "^FTSE",
@@ -70,7 +43,7 @@
       "region": "英国",
       "area": "欧洲",
       "value": 9965.16,
-      "change": 0.72,
+      "change": -0.0,
       "currency": "GBP"
     },
     {
@@ -79,7 +52,7 @@
       "region": "德国",
       "area": "欧洲",
       "value": 22636.91,
-      "change": -0.07,
+      "change": 0.0,
       "currency": "EUR"
     },
     {
@@ -88,7 +61,7 @@
       "region": "法国",
       "area": "欧洲",
       "value": 7743.92,
-      "change": 0.23,
+      "change": 0.0,
       "currency": "EUR"
     }
   ]
