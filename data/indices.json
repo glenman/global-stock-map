@@ -1,5 +1,5 @@
 {
-  "update_time": "2026-03-25 11:01:43",
+  "update_time": "2026-03-25 12:58:14",
   "indices": [
     {
       "id": "^GSPC",
@@ -33,8 +33,8 @@
       "name": "上证指数",
       "region": "中国",
       "area": "亚洲",
-      "value": 3920.05,
-      "change": 1.0,
+      "value": 3915.49,
+      "change": 0.88,
       "currency": "CNY"
     },
     {
@@ -42,8 +42,8 @@
       "name": "深证成指",
       "region": "中国",
       "area": "亚洲",
-      "value": 13770.47,
-      "change": 1.73,
+      "value": 13721.49,
+      "change": 1.37,
       "currency": "CNY"
     },
     {
@@ -51,8 +51,8 @@
       "name": "日经225",
       "region": "日本",
       "area": "亚洲",
-      "value": 53616.45,
-      "change": 2.61,
+      "value": 53846.6,
+      "change": 3.05,
       "currency": "JPY"
     },
     {
@@ -61,7 +61,7 @@
       "region": "香港",
       "area": "亚洲",
       "value": 25063.71,
-      "change": 0.72,
+      "change": 0.04,
       "currency": "HKD"
     },
     {
