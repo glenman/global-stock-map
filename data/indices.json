@@ -1,5 +1,5 @@
 {
-  "update_time": "2026-03-26 19:53:31",
+  "update_time": "2026-03-26 21:28:04",
   "indices": [
     {
       "id": "^GSPC",
@@ -69,8 +69,8 @@
       "name": "富时100",
       "region": "英国",
       "area": "欧洲",
-      "value": 9975.37,
-      "change": -1.3,
+      "value": 9982.14,
+      "change": -1.23,
       "currency": "GBP"
     },
     {
@@ -78,8 +78,8 @@
       "name": "德国DAX",
       "region": "德国",
       "area": "欧洲",
-      "value": 22618.52,
-      "change": -1.47,
+      "value": 22616.09,
+      "change": -1.49,
       "currency": "EUR"
     },
     {
@@ -87,8 +87,8 @@
       "name": "法国CAC40",
       "region": "法国",
       "area": "欧洲",
-      "value": 7773.5,
-      "change": -0.93,
+      "value": 7779.87,
+      "change": -0.85,
       "currency": "EUR"
     }
   ]
