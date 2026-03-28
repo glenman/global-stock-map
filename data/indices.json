@@ -1,5 +1,5 @@
 {
-  "update_time": "2026-03-28 07:38:00",
+  "update_time": "2026-03-28 10:37:06",
   "indices": [
     {
       "id": "^GSPC",
@@ -47,6 +47,15 @@
       "currency": "CNY"
     },
     {
+      "id": "^N225",
+      "name": "日经225",
+      "region": "日本",
+      "area": "亚洲",
+      "value": 53373.07,
+      "change": -0.43,
+      "currency": "JPY"
+    },
+    {
       "id": "^HSI",
       "name": "恒生指数",
       "region": "香港",
@@ -60,9 +69,27 @@
       "name": "富时100",
       "region": "英国",
       "area": "欧洲",
-      "value": 9967.35,
+      "value": 9967.4,
       "change": -0.05,
       "currency": "GBP"
+    },
+    {
+      "id": "^GDAXI",
+      "name": "德国DAX",
+      "region": "德国",
+      "area": "欧洲",
+      "value": 22300.75,
+      "change": -1.38,
+      "currency": "EUR"
+    },
+    {
+      "id": "^FCHI",
+      "name": "法国CAC40",
+      "region": "法国",
+      "area": "欧洲",
+      "value": 7701.95,
+      "change": -0.87,
+      "currency": "EUR"
     }
   ]
 }
