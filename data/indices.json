@@ -1,5 +1,5 @@
 {
-  "update_time": "2026-04-01 06:04:07",
+  "update_time": "2026-04-01 07:00:58",
   "indices": [
     {
       "id": "^GSPC",
@@ -54,15 +54,6 @@
       "value": 24750.79,
       "change": 0.15,
       "currency": "HKD"
-    },
-    {
-      "id": "^FTSE",
-      "name": "富时100",
-      "region": "英国",
-      "area": "欧洲",
-      "value": 10176.45,
-      "change": 0.48,
-      "currency": "GBP"
     }
   ]
 }
