@@ -1,5 +1,5 @@
 {
-  "update_time": "2026-03-31 14:50:28",
+  "update_time": "2026-03-31 16:11:06",
   "indices": [
     {
       "id": "^GSPC",
@@ -33,8 +33,8 @@
       "name": "上证指数",
       "region": "中国",
       "area": "亚洲",
-      "value": 3893.77,
-      "change": -0.75,
+      "value": 3891.86,
+      "change": -0.8,
       "currency": "CNY"
     },
     {
@@ -42,8 +42,8 @@
       "name": "深证成指",
       "region": "中国",
       "area": "亚洲",
-      "value": 13494.1,
-      "change": -1.69,
+      "value": 13478.06,
+      "change": -1.81,
       "currency": "CNY"
     },
     {
@@ -61,7 +61,7 @@
       "region": "香港",
       "area": "亚洲",
       "value": 24750.79,
-      "change": -0.32,
+      "change": -0.08,
       "currency": "HKD"
     },
     {
@@ -69,8 +69,8 @@
       "name": "富时100",
       "region": "英国",
       "area": "欧洲",
-      "value": 10128.0,
-      "change": 1.61,
+      "value": 10208.67,
+      "change": 0.8,
       "currency": "GBP"
     },
     {
@@ -78,8 +78,8 @@
       "name": "德国DAX",
       "region": "德国",
       "area": "欧洲",
-      "value": 22562.88,
-      "change": 1.18,
+      "value": 22711.92,
+      "change": 0.66,
       "currency": "EUR"
     },
     {
@@ -87,8 +87,8 @@
       "name": "法国CAC40",
       "region": "法国",
       "area": "欧洲",
-      "value": 7772.45,
-      "change": 0.92,
+      "value": 7821.16,
+      "change": 0.63,
       "currency": "EUR"
     }
   ]
