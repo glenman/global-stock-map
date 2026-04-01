@@ -1,5 +1,5 @@
 {
-  "update_time": "2026-04-01 07:43:18",
+  "update_time": "2026-04-01 11:17:08",
   "indices": [
     {
       "id": "^GSPC",
@@ -33,8 +33,8 @@
       "name": "上证指数",
       "region": "中国",
       "area": "亚洲",
-      "value": 3891.86,
-      "change": -0.8,
+      "value": 3950.61,
+      "change": 1.51,
       "currency": "CNY"
     },
     {
@@ -42,18 +42,54 @@
       "name": "深证成指",
       "region": "中国",
       "area": "亚洲",
-      "value": 13478.06,
-      "change": -1.81,
+      "value": 13674.36,
+      "change": 1.46,
       "currency": "CNY"
+    },
+    {
+      "id": "^N225",
+      "name": "日经225",
+      "region": "日本",
+      "area": "亚洲",
+      "value": 53128.33,
+      "change": 4.04,
+      "currency": "JPY"
     },
     {
       "id": "^HSI",
       "name": "恒生指数",
       "region": "香港",
       "area": "亚洲",
-      "value": 24750.79,
-      "change": 0.15,
+      "value": 24788.14,
+      "change": 2.13,
       "currency": "HKD"
+    },
+    {
+      "id": "^FTSE",
+      "name": "富时100",
+      "region": "英国",
+      "area": "欧洲",
+      "value": 10176.5,
+      "change": 0.48,
+      "currency": "GBP"
+    },
+    {
+      "id": "^GDAXI",
+      "name": "德国DAX",
+      "region": "德国",
+      "area": "欧洲",
+      "value": 22680.04,
+      "change": 0.52,
+      "currency": "EUR"
+    },
+    {
+      "id": "^FCHI",
+      "name": "法国CAC40",
+      "region": "法国",
+      "area": "欧洲",
+      "value": 7816.94,
+      "change": 0.57,
+      "currency": "EUR"
     }
   ]
 }
