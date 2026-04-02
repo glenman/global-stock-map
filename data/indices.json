@@ -1,5 +1,5 @@
 {
-  "update_time": "2026-04-03 05:03:19",
+  "update_time": "2026-04-03 06:02:25",
   "indices": [
     {
       "id": "^GSPC",
@@ -63,24 +63,6 @@
       "value": 10436.29,
       "change": 0.69,
       "currency": "GBP"
-    },
-    {
-      "id": "^GDAXI",
-      "name": "德国DAX",
-      "region": "德国",
-      "area": "欧洲",
-      "value": 23168.08,
-      "change": -0.56,
-      "currency": "EUR"
-    },
-    {
-      "id": "^FCHI",
-      "name": "法国CAC40",
-      "region": "法国",
-      "area": "欧洲",
-      "value": 7962.39,
-      "change": -0.24,
-      "currency": "EUR"
     }
   ]
 }
