@@ -1,5 +1,5 @@
 {
-  "update_time": "2026-04-06 07:38:55",
+  "update_time": "2026-04-06 10:55:19",
   "indices": [
     {
       "id": "^GSPC",
@@ -51,8 +51,8 @@
       "name": "日经225",
       "region": "日本",
       "area": "亚洲",
-      "value": 53123.49,
-      "change": 1.26,
+      "value": 54001.64,
+      "change": 1.65,
       "currency": "JPY"
     },
     {
