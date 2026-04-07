@@ -1,13 +1,13 @@
 {
-  "update_time": "2026-04-07 23:14:17",
+  "update_time": "2026-04-08 00:34:38",
   "indices": [
     {
       "id": "^GSPC",
       "name": "标普500",
       "region": "美国",
       "area": "北美洲",
-      "value": 6542.85,
-      "change": -1.04,
+      "value": 6585.79,
+      "change": -0.39,
       "currency": "USD"
     },
     {
@@ -15,8 +15,8 @@
       "name": "道琼斯",
       "region": "美国",
       "area": "北美洲",
-      "value": 46233.26,
-      "change": -0.94,
+      "value": 46453.7,
+      "change": -0.46,
       "currency": "USD"
     },
     {
@@ -24,8 +24,8 @@
       "name": "纳斯达克",
       "region": "美国",
       "area": "北美洲",
-      "value": 21666.93,
-      "change": -1.5,
+      "value": 21856.6,
+      "change": -0.64,
       "currency": "USD"
     },
     {
@@ -60,8 +60,8 @@
       "name": "富时100",
       "region": "英国",
       "area": "欧洲",
-      "value": 10360.87,
-      "change": -0.72,
+      "value": 10348.79,
+      "change": -0.84,
       "currency": "GBP"
     },
     {
@@ -69,8 +69,8 @@
       "name": "德国DAX",
       "region": "德国",
       "area": "欧洲",
-      "value": 22881.65,
-      "change": -1.24,
+      "value": 22921.59,
+      "change": -1.06,
       "currency": "EUR"
     },
     {
@@ -78,8 +78,8 @@
       "name": "法国CAC40",
       "region": "法国",
       "area": "欧洲",
-      "value": 7903.44,
-      "change": -0.74,
+      "value": 7908.74,
+      "change": -0.67,
       "currency": "EUR"
     }
   ]
