@@ -1,3 +1,60 @@
-{"update_time":"2026-04-09 17:47:16","indices":[],
-"count": 0
+{
+  "update_time": "2026-04-09 18:09:58",
+  "indices": [
+    {
+      "id": "int_dji",
+      "name": "道琼斯",
+      "region": "美国",
+      "area": "北美洲",
+      "value": 46247.29,
+      "change": 0.65,
+      "currency": "USD"
+    },
+    {
+      "id": "int_nasdaq",
+      "name": "纳斯达克",
+      "region": "美国",
+      "area": "北美洲",
+      "value": 22484.07,
+      "change": 0.44,
+      "currency": "USD"
+    },
+    {
+      "id": "int_sp500",
+      "name": "标普500",
+      "region": "美国",
+      "area": "北美洲",
+      "value": 6643.7,
+      "change": 0.59,
+      "currency": "USD"
+    },
+    {
+      "id": "int_ftse",
+      "name": "富时100",
+      "region": "英国",
+      "area": "欧洲",
+      "value": 9284.83,
+      "change": 0.77,
+      "currency": "GBP"
+    },
+    {
+      "id": "int_nikkei",
+      "name": "日经225",
+      "region": "日本",
+      "area": "亚洲",
+      "value": 44946.64,
+      "change": -0.9,
+      "currency": "JPY"
+    },
+    {
+      "id": "rt_hkHSI",
+      "name": "恒生指数",
+      "region": "香港",
+      "area": "亚洲",
+      "value": 25756.41,
+      "change": -0.54,
+      "currency": "HKD"
+    }
+  ],
+  "count": 6
 }
