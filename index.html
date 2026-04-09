@@ -239,6 +239,13 @@
         <input type="text" id="searchInput" placeholder="搜索指数名称或地区..." oninput="search()">
     </div>
 
+    <div class="regions" id="metalsRegion" style="display:none;">
+        <div class="region">
+            <div class="region-title"><span>🥇</span> 贵金属行情</div>
+            <div class="indices" id="metalsGrid"></div>
+        </div>
+    </div>
+
     <div class="regions" id="regions">
         <div class="loading">
             <div class="loading-spinner"></div>
@@ -247,7 +254,7 @@
     </div>
 
     <div class="footer">
-        数据来源: Yahoo Finance | 每小时自动更新 | <a href="https://github.com/glenman/global-stock-map" target="_blank">GitHub</a>
+        数据来源: Yahoo Finance / 新浪财经 / 东方财富 | 每30分钟自动更新 | <a href="https://github.com/glenman/global-stock-map" target="_blank">GitHub</a>
     </div>
 
     <script>
@@ -432,6 +439,7 @@
         }
 
         let indexData = [];
+        let metalsData = [];
         let currentFilter = 'all';
         let searchTerm = '';
 
@@ -453,6 +461,41 @@
                     </div>
                 `;
             }
+            // 加载贵金属数据
+            try {
+                const resp = await fetch('data/metals.json');
+                if (resp.ok) {
+                    const mdata = await resp.json();
+                    metalsData = mdata.metals || [];
+                    renderMetals();
+                }
+            } catch (e) { console.error('Metals load error:', e); }
+        }
+
+        function renderMetals() {
+            const container = document.getElementById('metalsRegion');
+            const grid = document.getElementById('metalsGrid');
+            if (!metalsData.length) { container.style.display = 'none'; return; }
+            container.style.display = '';
+            let html = '';
+            metalsData.forEach(m => {
+                const cc = m.change > 0.01 ? 'up' : (m.change < -0.01 ? 'down' : 'flat');
+                const cs = m.change > 0 ? `+${m.change.toFixed(2)}%` : `${m.change.toFixed(2)}%`;
+                const sl = m.source === 'sina' ? '新浪财经' : (m.source === 'eastmoney' ? '东方财富' : m.source);
+                html += `<div class="index-card">
+                    <div class="index-status open"><span class="index-status-dot"></span>实时行情</div>
+                    <div class="index-header">
+                        <div><div class="index-name">${m.name}</div><div class="index-region">📍 ${m.region} · ${m.unit}</div></div>
+                        <div class="index-change ${cc}">${cs}</div>
+                    </div>
+                    <div class="index-value">${m.current.toLocaleString(undefined,{maximumFractionDigits:2})}</div>
+                    <div style="display:flex;gap:15px;margin-top:8px;font-size:12px;color:#888;">
+                        <span>高: ${m.high}</span><span>低: ${m.low}</span><span>昨收: ${m.prev_close}</span>
+                    </div>
+                    <div class="index-currency" style="margin-top:4px;">货币: ${m.currency} · 来源: ${sl}</div>
+                </div>`;
+            });
+            grid.innerHTML = html;
         }
 
         function updateStats() {
