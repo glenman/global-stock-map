@@ -13,14 +13,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Fetch All Data
+      - name: Fetch Stock Indices
         run: |
           mkdir -p data
           UPDATE_TIME=$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')
           
-          # ============================================
-          # 1. 股票指数 (Yahoo Finance via allorigins)
-          # ============================================
           declare -a YAHOO_INDICES=(
             "^GSPC|标普500|美国|北美洲|USD"
             "^DJI|道琼斯|美国|北美洲|USD"
@@ -60,45 +57,36 @@ jobs:
             "^JN0U.JO|南非JSE|南非|非洲|ZAR"
           )
           
-          echo '{
-            "update_time": "'"$UPDATE_TIME"'",
-            "indices": [' > data/indices.json
+          printf '{"update_time":"%s","indices":[' "$UPDATE_TIME" > data/indices.json
           
           first=true
           for item in "${YAHOO_INDICES[@]}"; do
             IFS='|' read -r symbol name region area currency <<< "$item"
             url="https://api.allorigins.win/raw?url=https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=2d"
-            response=$(curl -s --max-time 15 "$url")
+            response=$(curl -s --connect-timeout 10 --max-time 15 "$url" 2>/dev/null || true)
             if [[ -z "$response" ]] || [[ "$response" == *"error"* ]]; then
               echo "skip $name" >&2
               continue
             fi
-            current=$(echo "$response" | python3 scripts/parse_yahoo.py 2>/dev/null)
+            current=$(echo "$response" | python3 scripts/parse_yahoo.py 2>/dev/null || true)
             if [[ -z "$current" ]]; then
-              echo "skip $name: parse fail" >&2
+              echo "skip $name: parse" >&2
               continue
             fi
             value=$(echo "$current" | cut -d'|' -f1)
             change=$(echo "$current" | cut -d'|' -f2)
-            if [[ "$first" == "true" ]]; then
-              first=false
-            else
-              echo "," >> data/indices.json
-            fi
-            printf '    {"id":"%s","name":"%s","region":"%s","area":"%s","value":%s,"change":%s,"currency":"%s"}' \
+            if [[ "$first" == "true" ]]; then first=false; else echo "," >> data/indices.json; fi
+            printf '{"id":"%s","name":"%s","region":"%s","area":"%s","value":%s,"change":%s,"currency":"%s"}' \
               "$symbol" "$name" "$region" "$area" "$value" "$change" "$currency" >> data/indices.json
-            echo "ok: $name = $value ($change%)"
+            echo "ok: $name"
           done
           
-          echo '' >> data/indices.json
-          echo '  ]' >> data/indices.json
+          echo '],' >> data/indices.json
+          echo '"count":' $(grep -c '"id"' data/indices.json) >> data/indices.json
           echo '}' >> data/indices.json
-          echo "=== indices done: $(grep -c '"id"' data/indices.json) ==="
-          
-          # ============================================
-          # 2. 贵金属数据
-          # ============================================
-          python3 scripts/fetch_metals.py
+
+      - name: Fetch Precious Metals
+        run: python3 scripts/fetch_metals.py
 
       - name: Commit and Push
         run: |
