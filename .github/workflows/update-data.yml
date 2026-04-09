@@ -1,193 +1,241 @@
-name: Update Stock Index Data
+name: Update Stock & Metals Data
 
 on:
   schedule:
-    - cron: '3,33 * * * *'
-  workflow_dispatch:
-
-permissions:
-  contents: write
+    # 每30分钟更新一次
+    - cron: '*/30 * * * *'
+  workflow_dispatch:  # 手动触发
 
 jobs:
   update-data:
     runs-on: ubuntu-latest
+    
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       
-      - name: Fetch Stock Data
+      - name: Fetch All Data
         run: |
           mkdir -p data
+          
           UPDATE_TIME=$(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S')
           
-          # 创建 Python 脚本
-          cat > /tmp/fetch_indices.py << 'PYEOF'
-          import urllib.request
-          import json
-          import ssl
-          import time
-          import os
-          from datetime import datetime
+          # ============================================
+          # 1. 股票指数 (Yahoo Finance via allorigins)
+          # ============================================
+          declare -a YAHOO_INDICES=(
+            # 北美洲
+            "^GSPC|标普500|美国|北美洲|USD"
+            "^DJI|道琼斯|美国|北美洲|USD"
+            "^IXIC|纳斯达克|美国|北美洲|USD"
+            "^GSPTSE|多伦多综指|加拿大|北美洲|CAD"
+            "^MXX|墨西哥IPC|墨西哥|北美洲|MXN"
+            # 南美洲
+            "^BVSP|巴西BOVESPA|巴西|南美洲|BRL"
+            "^MERV|阿根廷MERVAL|阿根廷|南美洲|ARS"
+            # 欧洲
+            "^FTSE|富时100|英国|欧洲|GBP"
+            "^GDAXI|德国DAX|德国|欧洲|EUR"
+            "^FCHI|法国CAC40|法国|欧洲|EUR"
+            "FTSEMIB.MI|意大利MIB|意大利|欧洲|EUR"
+            "^IBEX|西班牙IBEX35|西班牙|欧洲|EUR"
+            "^SSMI|瑞士SMI|瑞士|欧洲|CHF"
+            "^AEX|荷兰AEX|荷兰|欧洲|EUR"
+            # 亚洲 - 中国
+            "000001.SS|上证指数|中国|亚洲|CNY"
+            "399001.SZ|深证成指|中国|亚洲|CNY"
+            "000300.SS|沪深300|中国|亚洲|CNY"
+            "000016.SS|上证50|中国|亚洲|CNY"
+            "399006.SZ|创业板指|中国|亚洲|CNY"
+            "399005.SZ|中小板指|中国|亚洲|CNY"
+            # 亚洲 - 其他
+            "^N225|日经225|日本|亚洲|JPY"
+            "^HSI|恒生指数|香港|亚洲|HKD"
+            "^TWII|台湾加权|台湾|亚洲|TWD"
+            "^KS11|韩国KOSPI|韩国|亚洲|KRW"
+            "^NSEI|印度NIFTY50|印度|亚洲|INR"
+            "^BSESN|印度SENSEX|印度|亚洲|INR"
+            "^JKSE|印尼综指|印尼|亚洲|IDR"
+            "^SET.BK|泰国SET|泰国|亚洲|THY"
+            "^KLSE|马来西亚综指|马来西亚|亚洲|MYR"
+            "^STI|新加坡海峡|新加坡|亚洲|SGD"
+            "^PSEI|菲律宾综指|菲律宾|亚洲|PHP"
+            # 大洋洲
+            "^AXJO|澳洲ASX200|澳大利亚|大洋洲|AUD"
+            "^NZ50|新西兰NZX50|新西兰|大洋洲|NZD"
+            # 中东
+            "^TASI.SR|沙特TASI|沙特|中东|SAR"
+            "TA125.TA|以色列TA125|以色列|中东|ILS"
+            # 非洲
+            "^JN0U.JO|南非JSE|南非|非洲|ZAR"
+          )
           
-          # 忽略 SSL 证书
-          ctx = ssl.create_default_context()
-          ctx.check_hostname = False
-          ctx.verify_mode = ssl.CERT_NONE
+          echo "{" > data/indices.json
+          echo "  \"update_time\": \"$UPDATE_TIME\"," >> data/indices.json
+          echo "  \"indices\": [" >> data/indices.json
           
-          # 代理列表 (用于 Yahoo Finance)
-          PROXIES = [
-              lambda url: f"https://api.allorigins.win/raw?url={urllib.parse.quote(url, safe='')}",
-              lambda url: f"https://corsproxy.io/?{urllib.parse.quote(url, safe='')}",
-              lambda url: url,  # 直连
-          ]
-          
-          # 新浪财经 API (中国指数专用)
-          def fetch_from_sina(symbol, name, region, area, currency):
-              """从新浪财经获取中国相关指数"""
-              sina_map = {
-                  "000001.SS": "sh000001",  # 上证指数
-                  "399001.SZ": "sz399001",  # 深证成指
-                  "^HSI": "hkHSI",          # 恒生指数
+          first=true
+          for item in "${YAHOO_INDICES[@]}"; do
+            IFS='|' read -r symbol name region area currency <<< "$item"
+            
+            url="https://api.allorigins.win/raw?url=https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1d&range=2d"
+            response=$(curl -s --max-time 15 "$url")
+            
+            if [[ -z "$response" ]] || [[ "$response" == *"error"* ]]; then
+              echo "跳过 $name: 获取失败" >&2
+              continue
+            fi
+            
+            current=$(echo "$response" | python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    q = d['chart']['result'][0]['indicators']['quote'][0]
+    closes = [c for c in q['close'] if c is not None]
+    if len(closes) >= 2:
+        curr, prev = closes[-1], closes[-2]
+        change = ((curr - prev) / prev) * 100
+        print(f'{curr:.2f}|{change:.2f}')
+    elif len(closes) == 1:
+        print(f'{closes[0]:.2f}|0.00')
+except:
+    pass
+" 2>/dev/null)
+            
+            if [[ -z "$current" ]]; then
+              echo "跳过 $name: 解析失败" >&2
+              continue
+            fi
+            
+            value=$(echo "$current" | cut -d'|' -f1)
+            change=$(echo "$current" | cut -d'|' -f2)
+            
+            if [[ "$first" == "true" ]]; then
+              first=false
+            else
+              echo "," >> data/indices.json
+            fi
+            
+            cat >> data/indices.json << ENTRY
+              {
+                "id": "${symbol}",
+                "name": "${name}",
+                "region": "${region}",
+                "area": "${area}",
+                "value": ${value},
+                "change": ${change},
+                "currency": "${currency}"
               }
-              
-              sina_code = sina_map.get(symbol)
-              if not sina_code:
-                  return None
-              
-              try:
-                  url = f"https://hq.sinajs.cn/list={sina_code}"
-                  req = urllib.request.Request(url, headers={
-                      'Referer': 'https://finance.sina.com.cn',
-                      'User-Agent': 'Mozilla/5.0'
-                  })
-                  
-                  with urllib.request.urlopen(req, timeout=10) as resp:
-                      text = resp.read().decode('gbk')
-                      values = text.split('"')[1].split(',')
-                      
-                      if symbol in ["000001.SS", "399001.SZ"]:
-                          # 上证/深证: 名称,开盘,昨收,当前,最高,最低,...
-                          curr = float(values[3])
-                          prev = float(values[2])
-                          change = ((curr - prev) / prev) * 100
-                      else:  # ^HSI
-                          # 恒生: 代码,名称,当前,昨收,最高,最低,开盘,涨跌点数,涨跌幅,...
-                          curr = float(values[3])
-                          change = float(values[8])
-                      
-                      data = {
-                          "id": symbol,
-                          "name": name,
-                          "region": region,
-                          "area": area,
-                          "value": round(curr, 2),
-                          "change": round(change, 2),
-                          "currency": currency
-                      }
-                      print(f"✓ {name} = {curr:.2f} ({change:+.2f}%) [新浪]")
-                      return data
-              except Exception as e:
-                  print(f"⚠️  {name}: 新浪API失败 - {e}")
-                  return None
+ENTRY
+            echo "已获取: $name = $value ($change%)"
+          done
           
-          # Yahoo Finance API (美欧日指数)
-          def fetch_from_yahoo(symbol, name, region, area, currency):
-              """从 Yahoo Finance 获取指数"""
-              yahoo_url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?interval=1d&range=2d"
-              
-              for proxy_func in PROXIES:
-                  try:
-                      url = proxy_func(yahoo_url)
-                      req = urllib.request.Request(url, headers={
-                          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                      })
-                      with urllib.request.urlopen(req, timeout=20, context=ctx) as resp:
-                          text = resp.read().decode('utf-8')
-                          d = json.loads(text)
-                          q = d['chart']['result'][0]['indicators']['quote'][0]
-                          closes = [c for c in q['close'] if c is not None]
-                          if len(closes) >= 2:
-                              curr, prev = closes[-1], closes[-2]
-                              change = ((curr - prev) / prev) * 100
-                              data = {
-                                  "id": symbol,
-                                  "name": name,
-                                  "region": region,
-                                  "area": area,
-                                  "value": round(curr, 2),
-                                  "change": round(change, 2),
-                                  "currency": currency
-                              }
-                              print(f"✓ {name} = {curr:.2f} ({change:+.2f}%) [Yahoo]")
-                              return data
-                  except Exception as e:
-                      continue
-              return None
-          
-          INDICES = [
-              ("^GSPC", "标普500", "美国", "北美洲", "USD", "yahoo"),
-              ("^DJI", "道琼斯", "美国", "北美洲", "USD", "yahoo"),
-              ("^IXIC", "纳斯达克", "美国", "北美洲", "USD", "yahoo"),
-              ("000001.SS", "上证指数", "中国", "亚洲", "CNY", "sina"),
-              ("399001.SZ", "深证成指", "中国", "亚洲", "CNY", "sina"),
-              ("^N225", "日经225", "日本", "亚洲", "JPY", "yahoo"),
-              ("^HSI", "恒生指数", "香港", "亚洲", "HKD", "sina"),
-              ("^FTSE", "富时100", "英国", "欧洲", "GBP", "yahoo"),
-              ("^GDAXI", "德国DAX", "德国", "欧洲", "EUR", "yahoo"),
-              ("^FCHI", "法国CAC40", "法国", "欧洲", "EUR", "yahoo"),
-          ]
-          
-          results = []
-          
-          for symbol, name, region, area, currency, source in INDICES:
-              data = None
-              
-              # 根据数据源选择不同的获取方式
-              if source == "sina":
-                  data = fetch_from_sina(symbol, name, region, area, currency)
-                  # 如果新浪失败，尝试 Yahoo 作为备用
-                  if not data:
-                      data = fetch_from_yahoo(symbol, name, region, area, currency)
-              else:  # yahoo
-                  data = fetch_from_yahoo(symbol, name, region, area, currency)
-              
-              if data:
-                  results.append(data)
-              else:
-                  print(f"❌ {name}: 获取失败", flush=True)
-              
-              time.sleep(0.5)
-          
-          # 输出 JSON
-          # 从环境变量获取更新时间，如果没有则使用当前时间
-          update_time = os.environ.get('UPDATE_TIME') or datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-          output = {
-              "update_time": update_time,
-              "indices": results
-          }
-          
-          with open('data/indices.json', 'w', encoding='utf-8') as f:
-              json.dump(output, f, ensure_ascii=False, indent=2)
-          
-          print(f"\n=== 数据更新完成 ===")
-          print(f"成功: {len(results)} 个指数")
-          print(f"失败: {len(INDICES) - len(results)} 个指数")
-          PYEOF
-          
-          export UPDATE_TIME="$UPDATE_TIME"
-          python3 /tmp/fetch_indices.py
+          echo "" >> data/indices.json
+          echo "  ]" >> data/indices.json
+          echo "}" >> data/indices.json
           
           echo ""
-          cat data/indices.json | head -20
-      
+          echo "=== 指数数据完成: $(grep -c '"id"' data/indices.json) 个 ==="
+
+          # ============================================
+          # 2. 贵金属数据 (新浪财经 + 东方财富)
+          # ============================================
+          python3 << 'PYEOF'
+import json, re, os, subprocess
+
+update_time = os.popen("TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S'").read().strip()
+metals = []
+
+# --- 新浪财经 (主源) ---
+metal_config = {
+    "hf_XAU": {"name": "伦敦金（现货黄金）", "region": "英国", "currency": "USD", "unit": "美元/盎司"},
+    "hf_XAG": {"name": "伦敦银（现货白银）", "region": "英国", "currency": "USD", "unit": "美元/盎司"},
+    "hf_GC":  {"name": "纽约黄金期货",       "region": "美国", "currency": "USD", "unit": "美元/盎司"},
+    "hf_SI":  {"name": "纽约白银期货",       "region": "美国", "currency": "USD", "unit": "美元/盎司"},
+}
+
+sina_raw = subprocess.check_output([
+    "curl", "-s", "--max-time", "15",
+    "-H", "Referer: https://finance.sina.com.cn",
+    "https://hq.sinajs.cn/list=hf_XAU,hf_XAG,hf_GC,hf_SI"
+]).decode("gbk", errors="ignore")
+
+for code, meta in metal_config.items():
+    pattern = rf'hq_str_{code}="([^"]*)"'
+    m = re.search(pattern, sina_raw)
+    if not m or not m.group(1):
+        print(f"[新浪] 跳过 {meta['name']}: 无数据")
+        continue
+    
+    fields = m.group(1).split(",")
+    try:
+        current = float(fields[0])
+        prev_close = float(fields[7]) if fields[7] else current
+        high = float(fields[4]) if fields[4] else current
+        low = float(fields[5]) if fields[5] else current
+        trade_time = fields[6]
+        trade_date = fields[12]
+        change_pct = ((current - prev_close) / prev_close) * 100 if prev_close else 0
+        
+        metals.append({
+            "id": code, "name": meta["name"], "region": meta["region"], "area": "贵金属",
+            "current": round(current, 2), "prev_close": round(prev_close, 2),
+            "high": round(high, 2), "low": round(low, 2),
+            "change": round(change_pct, 2),
+            "currency": meta["currency"], "unit": meta["unit"],
+            "trade_time": f"{trade_date} {trade_time}",
+            "source": "sina"
+        })
+        print(f"[新浪] {meta['name']}: {current} ({change_pct:+.2f}%)")
+    except Exception as e:
+        print(f"[新浪] {meta['name']}: 解析错误 {e}")
+
+# --- 东方财富 (备源: 国内期货) ---
+em_items = [
+    ("113.aum", "沪金主连", "中国", "CNY", "元/克"),
+    ("113.agm", "沪银主连", "中国", "CNY", "元/千克"),
+]
+for secid, name, region, currency, unit in em_items:
+    try:
+        resp = subprocess.check_output([
+            "curl", "-s", "--max-time", "10",
+            f"https://push2.eastmoney.com/api/qt/stock/get?ut=fa5fd1943c7b386f172d6893dbbd1d0c&secid={secid}&fields=f43,f44,f45,f46,f57,f58,f170"
+        ]).decode()
+        d = json.loads(resp)
+        data = d.get("data")
+        if data and data.get("f43"):
+            current_em = data["f43"] / 100
+            high_em = data["f44"] / 100 if data.get("f44") else current_em
+            low_em = data["f45"] / 100 if data.get("f45") else current_em
+            open_em = data["f46"] / 100 if data.get("f46") else current_em
+            change_em = data.get("f170", 0) / 100
+            metals.append({
+                "id": f"em_{secid}", "name": name, "region": region, "area": "贵金属",
+                "current": round(current_em, 2), "prev_close": round(open_em, 2),
+                "high": round(high_em, 2), "low": round(low_em, 2),
+                "change": round(change_em, 2),
+                "currency": currency, "unit": unit,
+                "trade_time": update_time, "source": "eastmoney"
+            })
+            print(f"[东方财富] {name}: {current_em} ({change_em:+.2f}%)")
+        else:
+            print(f"[东方财富] {name}: 无数据")
+    except Exception as e:
+        print(f"[东方财富] {name}: {e}")
+
+# 输出
+output = {"update_time": update_time, "metals": metals}
+os.makedirs("data", exist_ok=True)
+with open("data/metals.json", "w") as f:
+    json.dump(output, f, ensure_ascii=False, indent=2)
+
+print(f"\n=== 贵金属数据完成: {len(metals)} 个品种 ===")
+PYEOF
+
       - name: Commit and Push
         run: |
-          git config user.email "action@github.com"
-          git config user.name "GitHub Action"
-          git add data/indices.json
-          if git diff --quiet && git diff --staged --quiet; then
-            echo "没有数据变化，跳过提交"
-          else
-            git commit -m "📊 更新股票指数数据 - $(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M')"
-            git push
-          fi
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add data/indices.json data/metals.json
+          git diff --quiet && git diff --staged --quiet || git commit -m "📊 更新股票指数+贵金属数据 - $(TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M')"
+          git push
