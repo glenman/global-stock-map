@@ -6,12 +6,21 @@ update_time = os.popen("TZ='Asia/Shanghai' date '+%Y-%m-%d %H:%M:%S'").read().st
 
 # 新浪财经全球指数配置
 sina_indices = {
+    # 北美洲
     "int_dji": {"name": "道琼斯", "region": "美国", "area": "北美洲", "currency": "USD"},
     "int_nasdaq": {"name": "纳斯达克", "region": "美国", "area": "北美洲", "currency": "USD"},
     "int_sp500": {"name": "标普500", "region": "美国", "area": "北美洲", "currency": "USD"},
+    # 欧洲
     "int_ftse": {"name": "富时100", "region": "英国", "area": "欧洲", "currency": "GBP"},
+    # 亚洲
     "int_nikkei": {"name": "日经225", "region": "日本", "area": "亚洲", "currency": "JPY"},
     "rt_hkHSI": {"name": "恒生指数", "region": "香港", "area": "亚洲", "currency": "HKD"},
+    # 中国大陆
+    "sh000001": {"name": "上证指数", "region": "中国", "area": "亚洲", "currency": "CNY"},
+    "sz399001": {"name": "深证成指", "region": "中国", "area": "亚洲", "currency": "CNY"},
+    "sh000300": {"name": "沪深300", "region": "中国", "area": "亚洲", "currency": "CNY"},
+    "sh000016": {"name": "上证50", "region": "中国", "area": "亚洲", "currency": "CNY"},
+    "sz399006": {"name": "创业板指", "region": "中国", "area": "亚洲", "currency": "CNY"},
 }
 
 indices = []
@@ -36,6 +45,8 @@ try:
             # 新浪格式:
             # 标准格式: 名称,当前价,涨跌点数,涨跌幅%
             # rt_格式: 代码,名称,当前价,昨收,最高,最低,开盘,涨跌点数,涨跌幅%
+            # 中国股票格式: 名称,开盘,昨收,当前,最高,最低,...
+            
             if code.startswith("rt_"):
                 # rt_ 格式 (如 rt_hkHSI)
                 if len(fields) >= 3 and fields[2]:
@@ -51,8 +62,29 @@ try:
                         "currency": meta["currency"]
                     })
                     print(f"[新浪] {meta['name']}: {current:.2f} ({change_pct:+.2f}%)")
+            
+            elif code.startswith("sh") or code.startswith("sz"):
+                # 中国股票指数格式: 名称,开盘,昨收,当前,最高,最低,...
+                if len(fields) >= 4 and fields[2] and fields[3]:
+                    current = float(fields[3])
+                    prev_close = float(fields[2])
+                    if prev_close > 0:
+                        change_pct = ((current - prev_close) / prev_close) * 100
+                    else:
+                        change_pct = 0
+                    indices.append({
+                        "id": code,
+                        "name": meta["name"],
+                        "region": meta["region"],
+                        "area": meta["area"],
+                        "value": current,
+                        "change": round(change_pct, 2),
+                        "currency": meta["currency"]
+                    })
+                    print(f"[新浪] {meta['name']}: {current:.2f} ({change_pct:+.2f}%)")
+            
             else:
-                # 标准格式 (如 int_dji)
+                # 标准格式 (如 int_dji, int_nasdaq)
                 if len(fields) >= 4 and fields[1]:
                     current = float(fields[1])
                     change_pct = float(fields[3]) if fields[3] else 0
