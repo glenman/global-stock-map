@@ -1,5 +1,5 @@
 {
-  "update_time": "2026-05-23 05:41:13",
+  "update_time": "2026-05-23 06:53:57",
   "metals": [
     {
       "id": "hf_XAU",
@@ -36,14 +36,14 @@
       "name": "纽约黄金期货",
       "region": "美国",
       "area": "贵金属",
-      "current": 4508.48,
-      "prev_close": 4542.5,
-      "high": 4547.0,
-      "low": 4488.0,
-      "change": -0.75,
+      "current": 4541.2,
+      "prev_close": 4576.6,
+      "high": 4581.0,
+      "low": 4521.8,
+      "change": -0.77,
       "currency": "USD",
       "unit": "美元/盎司",
-      "trade_time": "2026-05-23 04:59:56",
+      "trade_time": "2026-05-23 04:59:45",
       "source": "sina"
     },
     {
