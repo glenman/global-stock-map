@@ -1,5 +1,5 @@
 {
-  "update_time": "2026-07-06 04:10:09",
+  "update_time": "2026-07-06 05:33:12",
   "metals": [
     {
       "id": "hf_XAU",
@@ -43,7 +43,7 @@
       "change": 1.54,
       "currency": "USD",
       "unit": "美元/盎司",
-      "trade_time": "2026-07-04 00:59:59",
+      "trade_time": "2026-07-06 05:00:30",
       "source": "sina"
     },
     {
@@ -51,14 +51,14 @@
       "name": "纽约白银期货",
       "region": "美国",
       "area": "贵金属",
-      "current": 62.86,
+      "current": 62.87,
       "prev_close": 61.06,
       "high": 63.35,
       "low": 61.38,
-      "change": 2.95,
+      "change": 2.96,
       "currency": "USD",
       "unit": "美元/盎司",
-      "trade_time": "2026-07-04 00:59:56",
+      "trade_time": "2026-07-06 05:00:01",
       "source": "sina"
     }
   ]
