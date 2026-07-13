@@ -1,19 +1,19 @@
 {
-  "update_time": "2026-07-13 22:23:32",
+  "update_time": "2026-07-14 00:54:50",
   "metals": [
     {
       "id": "hf_XAU",
       "name": "伦敦金（现货黄金）",
       "region": "英国",
       "area": "贵金属",
-      "current": 4014.66,
+      "current": 3992.75,
       "prev_close": 4119.01,
       "high": 4103.43,
-      "low": 4002.98,
-      "change": -2.53,
+      "low": 3990.82,
+      "change": -3.07,
       "currency": "USD",
       "unit": "美元/盎司",
-      "trade_time": "2026-07-13 22:23:00",
+      "trade_time": "2026-07-14 00:54:00",
       "source": "sina"
     },
     {
@@ -21,14 +21,14 @@
       "name": "伦敦银（现货白银）",
       "region": "英国",
       "area": "贵金属",
-      "current": 57.8,
+      "current": 57.53,
       "prev_close": 59.84,
       "high": 59.36,
-      "low": 57.51,
-      "change": -3.41,
+      "low": 57.38,
+      "change": -3.86,
       "currency": "USD",
       "unit": "美元/盎司",
-      "trade_time": "2026-07-13 22:23:00",
+      "trade_time": "2026-07-14 00:54:00",
       "source": "sina"
     },
     {
@@ -36,14 +36,14 @@
       "name": "纽约黄金期货",
       "region": "美国",
       "area": "贵金属",
-      "current": 4022.65,
+      "current": 3998.95,
       "prev_close": 4113.7,
       "high": 4111.6,
-      "low": 4009.0,
-      "change": -2.21,
+      "low": 3997.4,
+      "change": -2.79,
       "currency": "USD",
       "unit": "美元/盎司",
-      "trade_time": "2026-07-13 22:23:32",
+      "trade_time": "2026-07-14 00:54:50",
       "source": "sina"
     },
     {
@@ -51,14 +51,14 @@
       "name": "纽约白银期货",
       "region": "美国",
       "area": "贵金属",
-      "current": 58.22,
+      "current": 57.88,
       "prev_close": 60.16,
       "high": 59.8,
-      "low": 57.83,
-      "change": -3.24,
+      "low": 57.76,
+      "change": -3.8,
       "currency": "USD",
       "unit": "美元/盎司",
-      "trade_time": "2026-07-13 22:23:31",
+      "trade_time": "2026-07-14 00:54:50",
       "source": "sina"
     }
   ]
