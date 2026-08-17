@@ -1,5 +1,5 @@
 {
-  "update_time": "2026-08-17 10:20:36",
+  "update_time": "2026-08-17 11:26:11",
   "indices": [
     {
       "id": "int_dji",
@@ -52,7 +52,7 @@
       "region": "香港",
       "area": "亚洲",
       "value": 25303.41,
-      "change": 1.39,
+      "change": 1.54,
       "currency": "HKD"
     },
     {
@@ -60,8 +60,8 @@
       "name": "上证指数",
       "region": "中国",
       "area": "亚洲",
-      "value": 3942.3421,
-      "change": 0.39,
+      "value": 3960.5406,
+      "change": 0.85,
       "currency": "CNY"
     },
     {
@@ -69,8 +69,8 @@
       "name": "深证成指",
       "region": "中国",
       "area": "亚洲",
-      "value": 14424.022,
-      "change": 0.49,
+      "value": 14533.992,
+      "change": 1.25,
       "currency": "CNY"
     },
     {
@@ -78,8 +78,8 @@
       "name": "沪深300",
       "region": "中国",
       "area": "亚洲",
-      "value": 4679.0701,
-      "change": 0.28,
+      "value": 4700.9661,
+      "change": 0.75,
       "currency": "CNY"
     },
     {
@@ -87,8 +87,8 @@
       "name": "上证50",
       "region": "中国",
       "area": "亚洲",
-      "value": 2923.4552,
-      "change": 0.25,
+      "value": 2932.0867,
+      "change": 0.55,
       "currency": "CNY"
     },
     {
@@ -96,8 +96,8 @@
       "name": "创业板指",
       "region": "中国",
       "area": "亚洲",
-      "value": 3638.988,
-      "change": 0.35,
+      "value": 3673.68,
+      "change": 1.31,
       "currency": "CNY"
     }
   ],
