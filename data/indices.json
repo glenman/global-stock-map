@@ -1,5 +1,5 @@
 {
-  "update_time": "2026-08-18 07:44:58",
+  "update_time": "2026-08-18 08:57:18",
   "indices": [
     {
       "id": "int_dji",
@@ -51,8 +51,8 @@
       "name": "恒生指数",
       "region": "香港",
       "area": "亚洲",
-      "value": 25303.41,
-      "change": 1.34,
+      "value": 0.0,
+      "change": 0.0,
       "currency": "HKD"
     },
     {
