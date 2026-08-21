@@ -1,5 +1,5 @@
 {
-  "update_time": "2026-08-21 15:37:57",
+  "update_time": "2026-08-21 16:34:19",
   "indices": [
     {
       "id": "int_dji",
@@ -52,7 +52,7 @@
       "region": "香港",
       "area": "亚洲",
       "value": 25807.61,
-      "change": 1.07,
+      "change": 1.21,
       "currency": "HKD"
     },
     {
